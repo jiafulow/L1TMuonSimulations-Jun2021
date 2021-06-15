@@ -1,0 +1,26 @@
+# ROOT
+*.d
+*.so
+*.root
+AutoDict_*
+
+# Python
+__init__.py
+__pycache__
+*.pyc
+*.pkl
+*.npy
+*.npz
+.ipynb_checkpoints
+
+# Keras
+*.h5
+*.json
+
+# Other
+*~
+*.log
+*.out
+*.orig
+*.bak
+dump.py
