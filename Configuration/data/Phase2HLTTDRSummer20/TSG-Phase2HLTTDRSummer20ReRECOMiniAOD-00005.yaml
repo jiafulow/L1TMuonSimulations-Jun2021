@@ -1,0 +1,21 @@
+conditions: 111X_mcRun4_realistic_T15_v1
+customise: SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000,L1Trigger/Configuration/customisePhase2TTOn110.customisePhase2TTOn110,Configuration/DataProcessing/Utils.addMonitoring
+customise_commands: process.RECOSIMoutput.outputCommands.append('keep *_*_*_HLT');
+  process.RECOSIMoutput.outputCommands.append('keep *_*_*_SIM'); process.RECOSIMoutput.outputCommands.extend(process.L1TriggerFEVTDEBUG.outputCommands);
+  process.RECOSIMoutput.outputCommands.extend(process.MicroEventContentMC.outputCommands);
+  process.load('HLTrigger.Configuration.HLTPhase2TDR_EventContent_cff'); process.RECOSIMoutput.outputCommands.extend(process.HLTPhase2TDR.outputCommands)
+datatier: FEVT
+era: Phase2C9
+eventcontent: RECOSIM
+filein: dbs:/DoubleMuon_gun_FlatPt-1To100/Phase2HLTTDRWinter20DIGI-NoPU_110X_mcRun4_realistic_v3-v2/GEN-SIM-DIGI-RAW
+fileout: file:TSG-Phase2HLTTDRSummer20ReRECOMiniAOD-00005.root
+geometry: Extended2026D49
+inputCommands: keep *
+mc: null
+nStreams: '0'
+no_exec: null
+number: '476'
+python_filename: TSG-Phase2HLTTDRSummer20ReRECOMiniAOD-00005_1_cfg.py
+runUnscheduled: null
+step: L1TrackTrigger,L1,RAW2DIGI,RECO,RECOSIM,PAT
+

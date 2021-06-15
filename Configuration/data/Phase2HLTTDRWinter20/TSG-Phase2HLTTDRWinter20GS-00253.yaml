@@ -1,0 +1,15 @@
+args: Configuration/GenProduction/python/TSG-Phase2HLTTDRWinter20GS-00253-fragment.py
+beamspot: HLLHC14TeV
+conditions: 110X_mcRun4_realistic_v3
+customise: Configuration/DataProcessing/Utils.addMonitoring
+datatier: GEN-SIM
+era: Phase2C9
+eventcontent: RAWSIM
+fileout: file:TSG-Phase2HLTTDRWinter20GS-00253.root
+geometry: Extended2026D49
+mc: null
+no_exec: null
+number: '10000'
+python_filename: TSG-Phase2HLTTDRWinter20GS-00253_1_cfg.py
+step: GEN,SIM
+
