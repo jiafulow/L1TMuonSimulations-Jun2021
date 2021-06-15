@@ -2,29 +2,34 @@
  *  \author Julia Yarba
  */
 
-#include <ostream>
-
 #include "L1TMuonSimulations/ParticleGuns/interface/FlatRandomPtGunProducer2.h"
+
+#include <iostream>
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 
 #include "CLHEP/Random/RandFlat.h"
 
 using namespace edm;
-using namespace std;
+using namespace CLHEP;
 
 FlatRandomPtGunProducer2::FlatRandomPtGunProducer2(const ParameterSet& pset) : BaseFlatGunProducer2(pset) {
-  ParameterSet defpset;
-  ParameterSet pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
+  const ParameterSet& pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
 
   fMinPt = pgun_params.getParameter<double>("MinPt");
   fMaxPt = pgun_params.getParameter<double>("MaxPt");
+  fMinOneOverPt = (fMaxPt != 0.) ? 1. / fMaxPt : 1e-9;
+  fMaxOneOverPt = (fMinPt != 0.) ? 1. / fMinPt : 1e-9;
+
+  fRandomCharge = pgun_params.exists("RandomCharge") ? pgun_params.getParameter<bool>("RandomCharge") : false;
+  fPtSpectrum = pgun_params.exists("PtSpectrum") ? pgun_params.getParameter<std::string>("PtSpectrum") : "flatPt";
 
   produces<HepMCProduct>("unsmeared");
   produces<GenEventInfoProduct>();
@@ -34,12 +39,12 @@ FlatRandomPtGunProducer2::~FlatRandomPtGunProducer2() {
   // no need to cleanup GenEvent memory - done in HepMCProduct
 }
 
-void FlatRandomPtGunProducer2::produce(Event& e, const EventSetup& es) {
+void FlatRandomPtGunProducer2::produce(Event& evt, const EventSetup& es) {
   edm::Service<edm::RandomNumberGenerator> rng;
-  CLHEP::HepRandomEngine* engine = &rng->getEngine(e.streamID());
+  CLHEP::HepRandomEngine* engine = &rng->getEngine(evt.streamID());
 
   if (fVerbosity > 0) {
-    cout << " FlatRandomPtGunProducer2 : Begin New Event Generation" << endl;
+    std::cout << " FlatRandomPtGunProducer2 : Begin New Event Generation" << std::endl;
   }
   // event loop (well, another step in it...)
 
@@ -60,19 +65,34 @@ void FlatRandomPtGunProducer2::produce(Event& e, const EventSetup& es) {
   //
   int barcode = 1;
   for (unsigned int ip = 0; ip < fPartIDs.size(); ++ip) {
-    double pt = CLHEP::RandFlat::shoot(engine, fMinPt, fMaxPt);
+    double xx = CLHEP::RandFlat::shoot(engine, 0., 1.);
+    double pt = 0.;
+    if (fPtSpectrum == "flatPt") {
+      pt = fMinPt + xx * (fMaxPt - fMinPt);
+    } else if (fPtSpectrum == "flatOneOverPt") {
+      pt = fMinOneOverPt + xx * (fMaxOneOverPt - fMinOneOverPt);
+      if (pt != 0.)
+        pt = 1. / pt;
+    } else if (fPtSpectrum == "flatOneOverPtCMS") {
+      pt = std::exp((1. - xx) * std::log(fMinOneOverPt) + xx * std::log(fMaxOneOverPt));
+      if (pt != 0.)
+        pt = 1. / pt;
+    }
+
     double eta = CLHEP::RandFlat::shoot(engine, fMinEta, fMaxEta);
     double phi = CLHEP::RandFlat::shoot(engine, fMinPhi, fMaxPhi);
     int PartID = fPartIDs[ip];
+    if (fRandomCharge && (CLHEP::RandFlat::shoot(engine, 0., 1.) < 0.5))
+      PartID = -PartID;
     const HepPDT::ParticleData* PData = fPDGTable->particle(HepPDT::ParticleID(abs(PartID)));
     double mass = PData->mass().value();
-    double theta = 2. * atan(exp(-eta));
-    double mom = pt / sin(theta);
-    double px = pt * cos(phi);
-    double py = pt * sin(phi);
-    double pz = mom * cos(theta);
+    double theta = 2. * std::atan(std::exp(-eta));
+    double mom = pt / std::sin(theta);
+    double px = pt * std::cos(phi);
+    double py = pt * std::sin(phi);
+    double pz = pt / std::tan(theta);
     double energy2 = mom * mom + mass * mass;
-    double energy = sqrt(energy2);
+    double energy = std::sqrt(energy2);
     HepMC::FourVector p(px, py, pz, energy);
     HepMC::GenParticle* Part = new HepMC::GenParticle(p, PartID, 1);
     Part->suggest_barcode(barcode);
@@ -93,25 +113,25 @@ void FlatRandomPtGunProducer2::produce(Event& e, const EventSetup& es) {
   }
 
   fEvt->add_vertex(Vtx);
-  fEvt->set_event_number(e.id().event());
+  fEvt->set_event_number(evt.id().event());
   fEvt->set_signal_process_id(20);
 
   if (fVerbosity > 0) {
     fEvt->print();
   }
 
-  unique_ptr<HepMCProduct> BProduct(new HepMCProduct());
-  BProduct->addHepMCData(fEvt);
-  e.put(std::move(BProduct), "unsmeared");
+  std::unique_ptr<HepMCProduct> BProduct(new HepMCProduct(fEvt));
+  evt.put(std::move(BProduct), "unsmeared");
 
-  unique_ptr<GenEventInfoProduct> genEventInfo(new GenEventInfoProduct(fEvt));
-  e.put(std::move(genEventInfo));
+  std::unique_ptr<GenEventInfoProduct> genEventInfo(new GenEventInfoProduct(fEvt));
+  evt.put(std::move(genEventInfo));
 
   if (fVerbosity > 0) {
     // for testing purpose only
     // fEvt->print() ; // prints empty info after it's made into edm::Event
-    cout << " FlatRandomPtGunProducer2 : Event Generation Done " << endl;
+    std::cout << " FlatRandomPtGunProducer2 : Event Generation Done " << std::endl;
   }
 }
+
 //#include "FWCore/Framework/interface/MakerMacros.h"
 //DEFINE_FWK_MODULE(FlatRandomPtGunProducer2);

@@ -3,6 +3,9 @@
 /*
 */
 
+#include <string>
+#include <memory>
+
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 
@@ -38,6 +41,7 @@ public:
   virtual TMatrixD const* GetInvLorentzBoost() const = 0;
 
 private:
+protected:
   edm::EDGetTokenT<edm::HepMCProduct> sourceToken;
 };
 

@@ -13,16 +13,18 @@ namespace edm {
 
   class FlatRandomPtGunProducer2 : public BaseFlatGunProducer2 {
   public:
-    FlatRandomPtGunProducer2(const ParameterSet& pset);
+    explicit FlatRandomPtGunProducer2(const ParameterSet&);
     ~FlatRandomPtGunProducer2() override;
 
-    void produce(Event& e, const EventSetup& es) override;
+    void produce(Event&, const EventSetup&) override;
 
   private:
-    // data members
-
     double fMinPt;
     double fMaxPt;
+    double fMinOneOverPt;
+    double fMaxOneOverPt;
+    bool fRandomCharge;
+    std::string fPtSpectrum;
   };
 }  // namespace edm
 

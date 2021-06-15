@@ -15,34 +15,19 @@
 
 #include "L1TMuonSimulations/ParticleGuns/interface/BaseEvtVtxGenerator2.h"
 
-namespace CLHEP {
-  class HepRandomEngine;
-}
-
 class FlatEvtVtxGenerator2 : public BaseEvtVtxGenerator2 {
 public:
-  FlatEvtVtxGenerator2(const edm::ParameterSet& p);
+  explicit FlatEvtVtxGenerator2(const edm::ParameterSet&);
   ~FlatEvtVtxGenerator2() override;
 
+  void produce(edm::Event&, const edm::EventSetup&) override;
+
   /// return a new event vertex
-  //virtual CLHEP::Hep3Vector* newVertex();
   HepMC::FourVector newVertex(CLHEP::HepRandomEngine*) const override;
 
-  const TMatrixD* GetInvLorentzBoost() const override { return nullptr; }
+  HepMC::FourVector newVertexFlatD0(CLHEP::HepRandomEngine* engine, double invpt, double phi) const;
 
-  /// set min in X in cm
-  void minX(double m = 0.0);
-  /// set min in Y in cm
-  void minY(double m = 0.0);
-  /// set min in Z in cm
-  void minZ(double m = 0.0);
-
-  /// set max in X in cm
-  void maxX(double m = 0);
-  /// set max in Y in cm
-  void maxY(double m = 0);
-  /// set max in Z in cm
-  void maxZ(double m = 0);
+  TMatrixD const* GetInvLorentzBoost() const override { return nullptr; }
 
 private:
   /** Copy constructor */
@@ -53,6 +38,7 @@ private:
 private:
   double fMinX, fMinY, fMinZ, fMinT;
   double fMaxX, fMaxY, fMaxZ, fMaxT;
+  std::string fVtxSpectrum;
 };
 
 #endif

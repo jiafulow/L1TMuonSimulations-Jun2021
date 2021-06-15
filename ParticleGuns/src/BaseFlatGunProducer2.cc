@@ -2,28 +2,22 @@
  *  \author Julia Yarba
  */
 
-#include <ostream>
-#include <memory>
+#include "L1TMuonSimulations/ParticleGuns/interface/BaseFlatGunProducer2.h"
 
-#include "FWCore/Framework/interface/EDProducer.h"
-#include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/Framework/interface/Run.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "FWCore/Utilities/interface/Exception.h"
-#include "FWCore/Utilities/interface/RandomNumberGenerator.h"
+#include <iostream>
+
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/Exception.h"
+
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
 
 #include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
-#include "L1TMuonSimulations/ParticleGuns/interface/BaseFlatGunProducer2.h"
-
-#include <iostream>
-
 using namespace edm;
-using namespace std;
 using namespace CLHEP;
 
 BaseFlatGunProducer2::BaseFlatGunProducer2(const ParameterSet& pset)
@@ -38,13 +32,13 @@ BaseFlatGunProducer2::BaseFlatGunProducer2(const ParameterSet& pset)
            "or remove the modules that require it.";
   }
 
-  ParameterSet pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
+  const ParameterSet& pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
 
   // although there's the method ParameterSet::empty(),
   // it looks like it's NOT even necessary to check if it is,
   // before trying to extract parameters - if it is empty,
   // the default values seem to be taken
-  fPartIDs = pgun_params.getParameter<vector<int> >("PartID");
+  fPartIDs = pgun_params.getParameter<std::vector<int> >("PartID");
   fMinEta = pgun_params.getParameter<double>("MinEta");
   fMaxEta = pgun_params.getParameter<double>("MaxEta");
   fMinPhi = pgun_params.getParameter<double>("MinPhi");
@@ -66,7 +60,7 @@ BaseFlatGunProducer2::BaseFlatGunProducer2(const ParameterSet& pset)
   }
 
   HepPDT::TableBuilder tb(*fPDGTable) ;
-  if ( !addPDGParticles( PDFile, tb ) ) { cout << " Error reading PDG !" << endl; }
+  if ( !addPDGParticles( PDFile, tb ) ) { std::cout << " Error reading PDG !" << std::endl; }
   // the tb dtor fills fPDGTable
 */
 
@@ -83,7 +77,7 @@ BaseFlatGunProducer2::~BaseFlatGunProducer2() {
   // delete fPDGTable;
 }
 
-void BaseFlatGunProducer2::beginRun(const edm::Run& r, const EventSetup& es) {
+void BaseFlatGunProducer2::beginRun(const Run& run, const EventSetup& es) {
   es.getData(fPDGTable);
   return;
 }
@@ -93,6 +87,6 @@ void BaseFlatGunProducer2::endRunProduce(Run& run, const EventSetup& es) {
   // just create an empty product
   // to keep the EventContent definitions happy
   // later on we might put the info into the run info that this is a PGun
-  unique_ptr<GenRunInfoProduct> genRunInfo(new GenRunInfoProduct());
+  std::unique_ptr<GenRunInfoProduct> genRunInfo(new GenRunInfoProduct());
   run.put(std::move(genRunInfo));
 }

@@ -6,7 +6,10 @@
  * Generates single particle gun in HepMC format
  * Julia Yarba 10/2005 
  ***************************************/
+
 #include <string>
+#include <memory>
+#include <vector>
 
 #include "HepPDT/defs.h"
 #include "HepPDT/TableBuilder.hh"
@@ -14,22 +17,19 @@
 
 #include "HepMC/GenEvent.h"
 
-#include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/one/EDProducer.h"
 #include "FWCore/Framework/interface/EventSetup.h"
-#include "FWCore/Framework/interface/Run.h"
-
-#include <memory>
+#include "FWCore/Framework/interface/ESHandle.h"
 
 namespace edm {
 
   class BaseFlatGunProducer2 : public one::EDProducer<one::WatchRuns, EndRunProducer> {
   public:
-    BaseFlatGunProducer2(const ParameterSet&);
+    explicit BaseFlatGunProducer2(const ParameterSet&);
     ~BaseFlatGunProducer2() override;
-    void beginRun(const edm::Run& r, const edm::EventSetup&) override;
-    void endRun(edm::Run const& r, const edm::EventSetup&) override;
-    void endRunProduce(edm::Run& r, const edm::EventSetup&) override;
+    void beginRun(const edm::Run&, const edm::EventSetup&) override;
+    void endRun(const edm::Run&, const edm::EventSetup&) override;
+    void endRunProduce(edm::Run&, const edm::EventSetup&) override;
 
   private:
   protected:

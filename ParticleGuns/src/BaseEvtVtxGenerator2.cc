@@ -1,30 +1,19 @@
-
-/*
-*/
-
 #include "L1TMuonSimulations/ParticleGuns/interface/BaseEvtVtxGenerator2.h"
 
-#include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-
-#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
-#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
+#include "FWCore/Utilities/interface/Exception.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 
-#include "FWCore/Utilities/interface/Exception.h"
-
-#include "DataFormats/Provenance/interface/Provenance.h"
-#include "FWCore/Utilities/interface/EDMException.h"
+#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 
 //#include "HepMC/GenEvent.h"
-// #include "CLHEP/Vector/ThreeVector.h"
-// #include "HepMC/SimpleVector.h"
+//#include "CLHEP/Vector/ThreeVector.h"
+//#include "HepMC/SimpleVector.h"
 
 using namespace edm;
 using namespace CLHEP;
-//using namespace HepMC;
 
 BaseEvtVtxGenerator2::BaseEvtVtxGenerator2(const ParameterSet& pset) {
   Service<RandomNumberGenerator> rng;
