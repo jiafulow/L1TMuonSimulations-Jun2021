@@ -2,7 +2,7 @@
 /*
 */
 
-#include "IOMC/EventVertexGenerators/interface/BaseEvtVtxGenerator.h"
+#include "L1TMuonSimulations/ParticleGuns/interface/BaseEvtVtxGenerator2.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -26,10 +26,10 @@ using namespace edm;
 using namespace CLHEP;
 //using namespace HepMC;
 
-BaseEvtVtxGenerator::BaseEvtVtxGenerator(const ParameterSet& pset) {
+BaseEvtVtxGenerator2::BaseEvtVtxGenerator2(const ParameterSet& pset) {
   Service<RandomNumberGenerator> rng;
   if (!rng.isAvailable()) {
-    throw cms::Exception("Configuration") << "The BaseEvtVtxGenerator requires the RandomNumberGeneratorService\n"
+    throw cms::Exception("Configuration") << "The BaseEvtVtxGenerator2 requires the RandomNumberGeneratorService\n"
                                              "which is not present in the configuration file. \n"
                                              "You must add the service\n"
                                              "in the configuration file or remove the modules that require it.";
@@ -39,9 +39,9 @@ BaseEvtVtxGenerator::BaseEvtVtxGenerator(const ParameterSet& pset) {
   produces<edm::HepMCProduct>();
 }
 
-BaseEvtVtxGenerator::~BaseEvtVtxGenerator() {}
+BaseEvtVtxGenerator2::~BaseEvtVtxGenerator2() {}
 
-void BaseEvtVtxGenerator::produce(Event& evt, const EventSetup&) {
+void BaseEvtVtxGenerator2::produce(Event& evt, const EventSetup&) {
   edm::Service<edm::RandomNumberGenerator> rng;
   CLHEP::HepRandomEngine* engine = &rng->getEngine(evt.streamID());
 

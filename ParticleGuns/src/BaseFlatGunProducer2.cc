@@ -18,7 +18,7 @@
 
 #include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
 
-#include "IOMC/ParticleGuns/interface/BaseFlatGunProducer.h"
+#include "L1TMuonSimulations/ParticleGuns/interface/BaseFlatGunProducer2.h"
 
 #include <iostream>
 
@@ -26,7 +26,7 @@ using namespace edm;
 using namespace std;
 using namespace CLHEP;
 
-BaseFlatGunProducer::BaseFlatGunProducer(const ParameterSet& pset)
+BaseFlatGunProducer2::BaseFlatGunProducer2(const ParameterSet& pset)
     : fEvt(nullptr)
 // fPDGTable( new DefaultConfig::ParticleDataTable("PDG Table") )
 {
@@ -61,7 +61,7 @@ BaseFlatGunProducer::BaseFlatGunProducer(const ParameterSet& pset)
   std::ifstream PDFile( TableFullName.c_str() ) ;
   if( !PDFile ) 
   {
-      throw cms::Exception("FileNotFound", "BaseFlatGunProducer::BaseFlatGunProducer()")
+      throw cms::Exception("FileNotFound", "BaseFlatGunProducer2::BaseFlatGunProducer2()")
 	<< "File " << TableFullName << " cannot be opened.\n";
   }
 
@@ -77,19 +77,19 @@ BaseFlatGunProducer::BaseFlatGunProducer(const ParameterSet& pset)
   produces<GenRunInfoProduct, Transition::EndRun>();
 }
 
-BaseFlatGunProducer::~BaseFlatGunProducer() {
+BaseFlatGunProducer2::~BaseFlatGunProducer2() {
   // no need to cleanup GenEvent memory - done in HepMCProduct
   // if (fEvt != NULL) delete fEvt ; // double check
   // delete fPDGTable;
 }
 
-void BaseFlatGunProducer::beginRun(const edm::Run& r, const EventSetup& es) {
+void BaseFlatGunProducer2::beginRun(const edm::Run& r, const EventSetup& es) {
   es.getData(fPDGTable);
   return;
 }
-void BaseFlatGunProducer::endRun(const Run& run, const EventSetup& es) {}
+void BaseFlatGunProducer2::endRun(const Run& run, const EventSetup& es) {}
 
-void BaseFlatGunProducer::endRunProduce(Run& run, const EventSetup& es) {
+void BaseFlatGunProducer2::endRunProduce(Run& run, const EventSetup& es) {
   // just create an empty product
   // to keep the EventContent definitions happy
   // later on we might put the info into the run info that this is a PGun

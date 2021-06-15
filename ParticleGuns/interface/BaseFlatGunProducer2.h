@@ -1,5 +1,5 @@
-#ifndef BaseFlatGunProducer_H
-#define BaseFlatGunProducer_H
+#ifndef BaseFlatGunProducer2_H
+#define BaseFlatGunProducer2_H
 
 /** \class FlatRandomEGunProducer
  *
@@ -23,10 +23,10 @@
 
 namespace edm {
 
-  class BaseFlatGunProducer : public one::EDProducer<one::WatchRuns, EndRunProducer> {
+  class BaseFlatGunProducer2 : public one::EDProducer<one::WatchRuns, EndRunProducer> {
   public:
-    BaseFlatGunProducer(const ParameterSet&);
-    ~BaseFlatGunProducer() override;
+    BaseFlatGunProducer2(const ParameterSet&);
+    ~BaseFlatGunProducer2() override;
     void beginRun(const edm::Run& r, const edm::EventSetup&) override;
     void endRun(edm::Run const& r, const edm::EventSetup&) override;
     void endRunProduce(edm::Run& r, const edm::EventSetup&) override;

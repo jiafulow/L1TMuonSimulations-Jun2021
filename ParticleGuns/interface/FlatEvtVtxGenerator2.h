@@ -1,5 +1,5 @@
-#ifndef IOMC_FlatEvtVtxGenerator_H
-#define IOMC_FlatEvtVtxGenerator_H
+#ifndef IOMC_FlatEvtVtxGenerator2_H
+#define IOMC_FlatEvtVtxGenerator2_H
 
 /**
  * Generate event vertices according to a Flat distribution. 
@@ -13,16 +13,16 @@
  *
  */
 
-#include "IOMC/EventVertexGenerators/interface/BaseEvtVtxGenerator.h"
+#include "L1TMuonSimulations/ParticleGuns/interface/BaseEvtVtxGenerator2.h"
 
 namespace CLHEP {
   class HepRandomEngine;
 }
 
-class FlatEvtVtxGenerator : public BaseEvtVtxGenerator {
+class FlatEvtVtxGenerator2 : public BaseEvtVtxGenerator2 {
 public:
-  FlatEvtVtxGenerator(const edm::ParameterSet& p);
-  ~FlatEvtVtxGenerator() override;
+  FlatEvtVtxGenerator2(const edm::ParameterSet& p);
+  ~FlatEvtVtxGenerator2() override;
 
   /// return a new event vertex
   //virtual CLHEP::Hep3Vector* newVertex();
@@ -46,9 +46,9 @@ public:
 
 private:
   /** Copy constructor */
-  FlatEvtVtxGenerator(const FlatEvtVtxGenerator& p) = delete;
+  FlatEvtVtxGenerator2(const FlatEvtVtxGenerator2& p) = delete;
   /** Copy assignment operator */
-  FlatEvtVtxGenerator& operator=(const FlatEvtVtxGenerator& rhs) = delete;
+  FlatEvtVtxGenerator2& operator=(const FlatEvtVtxGenerator2& rhs) = delete;
 
 private:
   double fMinX, fMinY, fMinZ, fMinT;

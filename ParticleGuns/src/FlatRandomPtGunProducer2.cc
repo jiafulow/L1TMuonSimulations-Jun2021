@@ -4,7 +4,7 @@
 
 #include <ostream>
 
-#include "IOMC/ParticleGuns/interface/FlatRandomPtGunProducer.h"
+#include "L1TMuonSimulations/ParticleGuns/interface/FlatRandomPtGunProducer2.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
@@ -19,7 +19,7 @@
 using namespace edm;
 using namespace std;
 
-FlatRandomPtGunProducer::FlatRandomPtGunProducer(const ParameterSet& pset) : BaseFlatGunProducer(pset) {
+FlatRandomPtGunProducer2::FlatRandomPtGunProducer2(const ParameterSet& pset) : BaseFlatGunProducer2(pset) {
   ParameterSet defpset;
   ParameterSet pgun_params = pset.getParameter<ParameterSet>("PGunParameters");
 
@@ -30,16 +30,16 @@ FlatRandomPtGunProducer::FlatRandomPtGunProducer(const ParameterSet& pset) : Bas
   produces<GenEventInfoProduct>();
 }
 
-FlatRandomPtGunProducer::~FlatRandomPtGunProducer() {
+FlatRandomPtGunProducer2::~FlatRandomPtGunProducer2() {
   // no need to cleanup GenEvent memory - done in HepMCProduct
 }
 
-void FlatRandomPtGunProducer::produce(Event& e, const EventSetup& es) {
+void FlatRandomPtGunProducer2::produce(Event& e, const EventSetup& es) {
   edm::Service<edm::RandomNumberGenerator> rng;
   CLHEP::HepRandomEngine* engine = &rng->getEngine(e.streamID());
 
   if (fVerbosity > 0) {
-    cout << " FlatRandomPtGunProducer : Begin New Event Generation" << endl;
+    cout << " FlatRandomPtGunProducer2 : Begin New Event Generation" << endl;
   }
   // event loop (well, another step in it...)
 
@@ -110,8 +110,8 @@ void FlatRandomPtGunProducer::produce(Event& e, const EventSetup& es) {
   if (fVerbosity > 0) {
     // for testing purpose only
     // fEvt->print() ; // prints empty info after it's made into edm::Event
-    cout << " FlatRandomPtGunProducer : Event Generation Done " << endl;
+    cout << " FlatRandomPtGunProducer2 : Event Generation Done " << endl;
   }
 }
 //#include "FWCore/Framework/interface/MakerMacros.h"
-//DEFINE_FWK_MODULE(FlatRandomPtGunProducer);
+//DEFINE_FWK_MODULE(FlatRandomPtGunProducer2);

@@ -1,20 +1,20 @@
-#ifndef FlatRandomPtGunProducer_H
-#define FlatRandomPtGunProducer_H
+#ifndef FlatRandomPtGunProducer2_H
+#define FlatRandomPtGunProducer2_H
 
-/** \class FlatRandomPtGunProducer
+/** \class FlatRandomPtGunProducer2
  *
  * Generates single particle gun in HepMC format
  * Julia Yarba 12/2005 
  ***************************************/
 
-#include "IOMC/ParticleGuns/interface/BaseFlatGunProducer.h"
+#include "L1TMuonSimulations/ParticleGuns/interface/BaseFlatGunProducer2.h"
 
 namespace edm {
 
-  class FlatRandomPtGunProducer : public BaseFlatGunProducer {
+  class FlatRandomPtGunProducer2 : public BaseFlatGunProducer2 {
   public:
-    FlatRandomPtGunProducer(const ParameterSet& pset);
-    ~FlatRandomPtGunProducer() override;
+    FlatRandomPtGunProducer2(const ParameterSet& pset);
+    ~FlatRandomPtGunProducer2() override;
 
     void produce(Event& e, const EventSetup& es) override;
 

@@ -1,5 +1,5 @@
-#ifndef IOMC_BaseEvtVtxGenerator_H
-#define IOMC_BaseEvtVtxGenerator_H
+#ifndef IOMC_BaseEvtVtxGenerator2_H
+#define IOMC_BaseEvtVtxGenerator2_H
 /*
 */
 
@@ -20,11 +20,11 @@ namespace edm {
   class HepMCProduct;
 }
 
-class BaseEvtVtxGenerator : public edm::stream::EDProducer<> {
+class BaseEvtVtxGenerator2 : public edm::stream::EDProducer<> {
 public:
   // ctor & dtor
-  explicit BaseEvtVtxGenerator(const edm::ParameterSet&);
-  ~BaseEvtVtxGenerator() override;
+  explicit BaseEvtVtxGenerator2(const edm::ParameterSet&);
+  ~BaseEvtVtxGenerator2() override;
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 
