@@ -1,0 +1,15 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/ParameterSet"/>
+<use name="SimDataFormats/TrackingHit"/>
+<use name="SimDataFormats/CrossingFrame"/>
+<use name="SimDataFormats/TrackingAnalysis"/>
+<use name="SimDataFormats/DigiSimLinks"/>
+<use name="Geometry/DTGeometry"/>
+<use name="Geometry/CSCGeometry"/>
+<use name="Geometry/RPCGeometry"/>
+<use name="Geometry/GEMGeometry"/>
+<use name="Geometry/Records"/>
+<use name="SimTracker/TrackTriggerAssociation"/>
+<export>
+  <lib name="1"/>
+</export>
