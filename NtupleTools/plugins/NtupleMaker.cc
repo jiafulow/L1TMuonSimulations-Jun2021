@@ -78,30 +78,46 @@ protected:
 
   // clang-format off
   // Hits
+  std::unique_ptr<std::vector<int16_t> >   vh_subsystem;       // kDT, kCSC, kRPC, kGEM, kME0
   std::unique_ptr<std::vector<int16_t> >   vh_endcap;          //
-  std::unique_ptr<std::vector<int16_t> >   vh_station;         //
-  std::unique_ptr<std::vector<int16_t> >   vh_ring;            //
   std::unique_ptr<std::vector<int16_t> >   vh_sector;          //
   std::unique_ptr<std::vector<int16_t> >   vh_subsector;       //
+  std::unique_ptr<std::vector<int16_t> >   vh_station;         //
+  std::unique_ptr<std::vector<int16_t> >   vh_ring;            //
   std::unique_ptr<std::vector<int16_t> >   vh_chamber;         //
   std::unique_ptr<std::vector<int16_t> >   vh_cscid;           //
-  std::unique_ptr<std::vector<int16_t> >   vh_bx;              //
-  std::unique_ptr<std::vector<int16_t> >   vh_subsystem;       // kDT, kCSC, kRPC, kGEM, kME0
-  std::unique_ptr<std::vector<int16_t> >   vh_neighbor;        //
   std::unique_ptr<std::vector<int16_t> >   vh_strip;           //
-  std::unique_ptr<std::vector<int16_t> >   vh_wire;            //
-  std::unique_ptr<std::vector<int16_t> >   vh_roll;            //
+  std::unique_ptr<std::vector<int16_t> >   vh_strip_lo;        //
+  std::unique_ptr<std::vector<int16_t> >   vh_strip_hi;        //
+  std::unique_ptr<std::vector<int16_t> >   vh_wire1;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_wire2;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_bend;            //
   std::unique_ptr<std::vector<int16_t> >   vh_quality;         //
   std::unique_ptr<std::vector<int16_t> >   vh_pattern;         //
-  std::unique_ptr<std::vector<int16_t> >   vh_bend;            //
-  std::unique_ptr<std::vector<int16_t> >   vh_time;            //
-  std::unique_ptr<std::vector<int16_t> >   vh_fr;              //
-  std::unique_ptr<std::vector<int32_t> >   vh_emtf_phi;        //
-  std::unique_ptr<std::vector<int32_t> >   vh_emtf_theta;      //
-  std::unique_ptr<std::vector<float> >     vh_sim_phi;         // in degrees
-  std::unique_ptr<std::vector<float> >     vh_sim_theta;       // in degrees
-  std::unique_ptr<std::vector<float> >     vh_sim_r;           // in cm
-  std::unique_ptr<std::vector<float> >     vh_sim_z;           // in cm
+  std::unique_ptr<std::vector<int16_t> >   vh_neighbor;        //
+  std::unique_ptr<std::vector<int16_t> >   vh_zones;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_timezones;       //
+  std::unique_ptr<std::vector<int16_t> >   vh_cscfr;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_gemdl;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_subbx;           //
+  std::unique_ptr<std::vector<int16_t> >   vh_bx;              //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_chamber;    //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_segment;    //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_phi;        //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_bend;       //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_theta1;     //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_theta2;     //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_qual1;      //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_qual2;      //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_time;       //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_site;       //
+  std::unique_ptr<std::vector<int16_t> >   vh_emtf_host;       //
+  std::unique_ptr<std::vector<float> >     vh_glob_phi;        // in degrees
+  std::unique_ptr<std::vector<float> >     vh_glob_theta;      // in degrees
+  std::unique_ptr<std::vector<float> >     vh_glob_perp;       // in cm
+  std::unique_ptr<std::vector<float> >     vh_glob_z;          // in cm
+  std::unique_ptr<std::vector<float> >     vh_glob_time;       // in ns
+  std::unique_ptr<std::vector<int16_t> >   vh_valid;           //
   std::unique_ptr<std::vector<int32_t> >   vh_sim_tp1;         //
   std::unique_ptr<std::vector<int32_t> >   vh_sim_tp2;         //
   std::unique_ptr<int32_t>                 vh_size;            //
@@ -130,25 +146,47 @@ protected:
 
   // Tracks
   std::unique_ptr<std::vector<float> >     vt_pt;              //
-  std::unique_ptr<std::vector<float> >     vt_xml_pt;          //
-  std::unique_ptr<std::vector<float> >     vt_pt_dxy;          //
-  std::unique_ptr<std::vector<float> >     vt_dxy;             //
-  std::unique_ptr<std::vector<float> >     vt_invpt;           //
-  std::unique_ptr<std::vector<float> >     vt_invpt_dxy;       //
-  std::unique_ptr<std::vector<float> >     vt_phi;             // in degrees
-  std::unique_ptr<std::vector<float> >     vt_theta;           // in degrees
+  std::unique_ptr<std::vector<float> >     vt_phi;             // in radians
+  std::unique_ptr<std::vector<float> >     vt_theta;           // in radians
   std::unique_ptr<std::vector<float> >     vt_eta;             //
+  std::unique_ptr<std::vector<float> >     vt_invpt;           //
+  std::unique_ptr<std::vector<float> >     vt_d0;              // in cm
   std::unique_ptr<std::vector<int16_t> >   vt_q;               // charge
-  std::unique_ptr<std::vector<uint64_t> >  vt_address;         //
-  std::unique_ptr<std::vector<int16_t> >   vt_mode;            //
+  std::unique_ptr<std::vector<int32_t> >   vt_hw_pt;           //
+  std::unique_ptr<std::vector<int32_t> >   vt_hw_eta;          //
+  std::unique_ptr<std::vector<int32_t> >   vt_hw_phi;          //
+  std::unique_ptr<std::vector<int16_t> >   vt_hw_d0;           //
+  std::unique_ptr<std::vector<int16_t> >   vt_hw_z0;           //
+  std::unique_ptr<std::vector<int16_t> >   vt_hw_beta;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hw_charge;       //
+  std::unique_ptr<std::vector<int16_t> >   vt_hw_qual;         //
+  std::unique_ptr<std::vector<int32_t> >   vt_model_invpt;     //
+  std::unique_ptr<std::vector<int32_t> >   vt_model_phi;       //
+  std::unique_ptr<std::vector<int32_t> >   vt_model_eta;       //
+  std::unique_ptr<std::vector<int16_t> >   vt_model_d0;        //
+  std::unique_ptr<std::vector<int16_t> >   vt_model_z0;        //
+  std::unique_ptr<std::vector<int16_t> >   vt_model_beta;      //
+  std::unique_ptr<std::vector<int16_t> >   vt_model_qual;      //
+  std::unique_ptr<std::vector<int16_t> >   vt_emtf_mode_v1;    //
+  std::unique_ptr<std::vector<int16_t> >   vt_emtf_mode_v2;    //
   std::unique_ptr<std::vector<int16_t> >   vt_endcap;          //
   std::unique_ptr<std::vector<int16_t> >   vt_sector;          //
   std::unique_ptr<std::vector<int16_t> >   vt_bx;              //
+  std::unique_ptr<std::vector<int16_t> >   vt_unconstrained;   //
+  std::unique_ptr<std::vector<int16_t> >   vt_valid;           //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref0;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref1;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref2;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref3;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref4;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref5;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref6;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref7;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref8;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitref9;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitrefA;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitrefB;         //
   std::unique_ptr<std::vector<int16_t> >   vt_nhits;           //
-  std::unique_ptr<std::vector<int32_t> >   vt_hitref1;         //
-  std::unique_ptr<std::vector<int32_t> >   vt_hitref2;         //
-  std::unique_ptr<std::vector<int32_t> >   vt_hitref3;         //
-  std::unique_ptr<std::vector<int32_t> >   vt_hitref4;         //
   std::unique_ptr<int32_t>                 vt_size;            //
 
   // L1TrackTrigger tracks
@@ -221,30 +259,46 @@ void TreeMixin::initTree() {
   tree->Branch(#NAME, (NAME).get());
 
   // Hits
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_subsystem)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_endcap)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_station)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_ring)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_sector)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_subsector)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_station)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_ring)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_chamber)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_cscid)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_bx)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_subsystem)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_neighbor)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_strip)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_wire)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_roll)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_strip_lo)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_strip_hi)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_wire1)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_wire2)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_bend)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_quality)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_pattern)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_bend)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_time)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_fr)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_neighbor)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_zones)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_timezones)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_cscfr)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_gemdl)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_subbx)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_bx)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_chamber)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_segment)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_phi)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_theta)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_phi)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_theta)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_r)
-  MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_z)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_bend)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_theta1)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_theta2)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_qual1)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_qual2)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_time)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_site)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_emtf_host)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_glob_phi)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_glob_theta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_glob_perp)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_glob_z)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_glob_time)
+  MY_MAKE_UNIQUE_AND_BRANCH(vh_valid)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_tp1)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_sim_tp2)
   MY_MAKE_UNIQUE_AND_BRANCH(vh_size)
@@ -273,25 +327,47 @@ void TreeMixin::initTree() {
 
   // Tracks
   MY_MAKE_UNIQUE_AND_BRANCH(vt_pt)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_xml_pt)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_pt_dxy)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_dxy)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_invpt)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_invpt_dxy)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_phi)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_theta)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_eta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_invpt)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_d0)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_q)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_address)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_mode)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_pt)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_eta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_phi)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_d0)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_z0)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_beta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_charge)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hw_qual)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_invpt)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_phi)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_eta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_d0)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_z0)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_beta)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_model_qual)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_emtf_mode_v1)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_emtf_mode_v2)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_endcap)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_sector)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_bx)
-  MY_MAKE_UNIQUE_AND_BRANCH(vt_nhits)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_unconstrained)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_valid)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref0)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref1)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref2)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref3)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref4)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref5)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref6)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref7)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref8)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref9)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitrefA)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitrefB)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_nhits)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_size)
 
   // L1TrackTrigger tracks
@@ -361,30 +437,46 @@ void TreeMixin::fillTree() {
 #define MY_RESET_TO_ZERO(NAME) detail::reset_to_zero((NAME).get());
 
   // Hits
+  MY_RESET_TO_ZERO(vh_subsystem)
   MY_RESET_TO_ZERO(vh_endcap)
-  MY_RESET_TO_ZERO(vh_station)
-  MY_RESET_TO_ZERO(vh_ring)
   MY_RESET_TO_ZERO(vh_sector)
   MY_RESET_TO_ZERO(vh_subsector)
+  MY_RESET_TO_ZERO(vh_station)
+  MY_RESET_TO_ZERO(vh_ring)
   MY_RESET_TO_ZERO(vh_chamber)
   MY_RESET_TO_ZERO(vh_cscid)
-  MY_RESET_TO_ZERO(vh_bx)
-  MY_RESET_TO_ZERO(vh_subsystem)
-  MY_RESET_TO_ZERO(vh_neighbor)
   MY_RESET_TO_ZERO(vh_strip)
-  MY_RESET_TO_ZERO(vh_wire)
-  MY_RESET_TO_ZERO(vh_roll)
+  MY_RESET_TO_ZERO(vh_strip_lo)
+  MY_RESET_TO_ZERO(vh_strip_hi)
+  MY_RESET_TO_ZERO(vh_wire1)
+  MY_RESET_TO_ZERO(vh_wire2)
+  MY_RESET_TO_ZERO(vh_bend)
   MY_RESET_TO_ZERO(vh_quality)
   MY_RESET_TO_ZERO(vh_pattern)
-  MY_RESET_TO_ZERO(vh_bend)
-  MY_RESET_TO_ZERO(vh_time)
-  MY_RESET_TO_ZERO(vh_fr)
+  MY_RESET_TO_ZERO(vh_neighbor)
+  MY_RESET_TO_ZERO(vh_zones)
+  MY_RESET_TO_ZERO(vh_timezones)
+  MY_RESET_TO_ZERO(vh_cscfr)
+  MY_RESET_TO_ZERO(vh_gemdl)
+  MY_RESET_TO_ZERO(vh_subbx)
+  MY_RESET_TO_ZERO(vh_bx)
+  MY_RESET_TO_ZERO(vh_emtf_chamber)
+  MY_RESET_TO_ZERO(vh_emtf_segment)
   MY_RESET_TO_ZERO(vh_emtf_phi)
-  MY_RESET_TO_ZERO(vh_emtf_theta)
-  MY_RESET_TO_ZERO(vh_sim_phi)
-  MY_RESET_TO_ZERO(vh_sim_theta)
-  MY_RESET_TO_ZERO(vh_sim_r)
-  MY_RESET_TO_ZERO(vh_sim_z)
+  MY_RESET_TO_ZERO(vh_emtf_bend)
+  MY_RESET_TO_ZERO(vh_emtf_theta1)
+  MY_RESET_TO_ZERO(vh_emtf_theta2)
+  MY_RESET_TO_ZERO(vh_emtf_qual1)
+  MY_RESET_TO_ZERO(vh_emtf_qual2)
+  MY_RESET_TO_ZERO(vh_emtf_time)
+  MY_RESET_TO_ZERO(vh_emtf_site)
+  MY_RESET_TO_ZERO(vh_emtf_host)
+  MY_RESET_TO_ZERO(vh_glob_phi)
+  MY_RESET_TO_ZERO(vh_glob_theta)
+  MY_RESET_TO_ZERO(vh_glob_perp)
+  MY_RESET_TO_ZERO(vh_glob_z)
+  MY_RESET_TO_ZERO(vh_glob_time)
+  MY_RESET_TO_ZERO(vh_valid)
   MY_RESET_TO_ZERO(vh_sim_tp1)
   MY_RESET_TO_ZERO(vh_sim_tp2)
   MY_RESET_TO_ZERO(vh_size)
@@ -413,25 +505,47 @@ void TreeMixin::fillTree() {
 
   // Tracks
   MY_RESET_TO_ZERO(vt_pt)
-  MY_RESET_TO_ZERO(vt_xml_pt)
-  MY_RESET_TO_ZERO(vt_pt_dxy)
-  MY_RESET_TO_ZERO(vt_dxy)
-  MY_RESET_TO_ZERO(vt_invpt)
-  MY_RESET_TO_ZERO(vt_invpt_dxy)
   MY_RESET_TO_ZERO(vt_phi)
   MY_RESET_TO_ZERO(vt_theta)
   MY_RESET_TO_ZERO(vt_eta)
+  MY_RESET_TO_ZERO(vt_invpt)
+  MY_RESET_TO_ZERO(vt_d0)
   MY_RESET_TO_ZERO(vt_q)
-  MY_RESET_TO_ZERO(vt_address)
-  MY_RESET_TO_ZERO(vt_mode)
+  MY_RESET_TO_ZERO(vt_hw_pt)
+  MY_RESET_TO_ZERO(vt_hw_eta)
+  MY_RESET_TO_ZERO(vt_hw_phi)
+  MY_RESET_TO_ZERO(vt_hw_d0)
+  MY_RESET_TO_ZERO(vt_hw_z0)
+  MY_RESET_TO_ZERO(vt_hw_beta)
+  MY_RESET_TO_ZERO(vt_hw_charge)
+  MY_RESET_TO_ZERO(vt_hw_qual)
+  MY_RESET_TO_ZERO(vt_model_invpt)
+  MY_RESET_TO_ZERO(vt_model_phi)
+  MY_RESET_TO_ZERO(vt_model_eta)
+  MY_RESET_TO_ZERO(vt_model_d0)
+  MY_RESET_TO_ZERO(vt_model_z0)
+  MY_RESET_TO_ZERO(vt_model_beta)
+  MY_RESET_TO_ZERO(vt_model_qual)
+  MY_RESET_TO_ZERO(vt_emtf_mode_v1)
+  MY_RESET_TO_ZERO(vt_emtf_mode_v2)
   MY_RESET_TO_ZERO(vt_endcap)
   MY_RESET_TO_ZERO(vt_sector)
   MY_RESET_TO_ZERO(vt_bx)
-  MY_RESET_TO_ZERO(vt_nhits)
+  MY_RESET_TO_ZERO(vt_unconstrained)
+  MY_RESET_TO_ZERO(vt_valid)
+  MY_RESET_TO_ZERO(vt_hitref0)
   MY_RESET_TO_ZERO(vt_hitref1)
   MY_RESET_TO_ZERO(vt_hitref2)
   MY_RESET_TO_ZERO(vt_hitref3)
   MY_RESET_TO_ZERO(vt_hitref4)
+  MY_RESET_TO_ZERO(vt_hitref5)
+  MY_RESET_TO_ZERO(vt_hitref6)
+  MY_RESET_TO_ZERO(vt_hitref7)
+  MY_RESET_TO_ZERO(vt_hitref8)
+  MY_RESET_TO_ZERO(vt_hitref9)
+  MY_RESET_TO_ZERO(vt_hitrefA)
+  MY_RESET_TO_ZERO(vt_hitrefB)
+  MY_RESET_TO_ZERO(vt_nhits)
   MY_RESET_TO_ZERO(vt_size)
 
   // L1TrackTrigger tracks
@@ -669,7 +783,50 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // ___________________________________________________________________________
   // Hits
   for (const auto& hit : emtf_hits) {
-    //TODO: implement this
+    const auto [sim_tp1, sim_tp2] = truth_->findTrackingParticle(hit, trk_particles);
+
+    vh_subsystem->push_back(hit.subsystem());
+    vh_endcap->push_back(hit.endcap());
+    vh_sector->push_back(hit.sector());
+    vh_subsector->push_back(hit.subsector());
+    vh_station->push_back(hit.station());
+    vh_ring->push_back(hit.ring());
+    vh_chamber->push_back(hit.chamber());
+    vh_cscid->push_back(hit.cscid());
+    vh_strip->push_back(hit.strip());
+    vh_strip_lo->push_back(hit.stripLo());
+    vh_strip_hi->push_back(hit.stripHi());
+    vh_wire1->push_back(hit.wire1());
+    vh_wire2->push_back(hit.wire2());
+    vh_bend->push_back(hit.bend());
+    vh_quality->push_back(hit.quality());
+    vh_pattern->push_back(hit.pattern());
+    vh_neighbor->push_back(hit.neighbor());
+    vh_zones->push_back(hit.zones());
+    vh_timezones->push_back(hit.timezones());
+    vh_cscfr->push_back(hit.cscfr());
+    vh_gemdl->push_back(hit.gemdl());
+    vh_subbx->push_back(hit.subbx());
+    vh_bx->push_back(hit.bx());
+    vh_emtf_chamber->push_back(hit.emtfChamber());
+    vh_emtf_segment->push_back(hit.emtfSegment());
+    vh_emtf_phi->push_back(hit.emtfPhi());
+    vh_emtf_bend->push_back(hit.emtfBend());
+    vh_emtf_theta1->push_back(hit.emtfTheta1());
+    vh_emtf_theta2->push_back(hit.emtfTheta2());
+    vh_emtf_qual1->push_back(hit.emtfQual1());
+    vh_emtf_qual2->push_back(hit.emtfQual2());
+    vh_emtf_time->push_back(hit.emtfTime());
+    vh_emtf_site->push_back(hit.emtfSite());
+    vh_emtf_host->push_back(hit.emtfHost());
+    vh_glob_phi->push_back(hit.globPhi());
+    vh_glob_theta->push_back(hit.globTheta());
+    vh_glob_perp->push_back(hit.globPerp());
+    vh_glob_z->push_back(hit.globZ());
+    vh_glob_time->push_back(hit.globTime());
+    vh_valid->push_back(hit.valid());
+    vh_sim_tp1->push_back(sim_tp1);
+    vh_sim_tp2->push_back(sim_tp2);
   }
   (*vh_size) = emtf_hits.size();
 
@@ -701,7 +858,56 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // ___________________________________________________________________________
   // Tracks
   for (const auto& trk : emtf_tracks) {
-    //TODO: implement this
+    auto get_nhits_fn = [](const EMTFTrack& trk) -> int {
+      int result = 0;
+      for (auto x : trk.segValidArray()) {
+        result += x;
+      }
+      return result;
+    };
+
+    vt_pt->push_back(0.);     // not yet implemented
+    vt_phi->push_back(0.);    // not yet implemented
+    vt_theta->push_back(0.);  // not yet implemented
+    vt_eta->push_back(0.);    // not yet implemented
+    vt_invpt->push_back(0.);  // not yet implemented
+    vt_d0->push_back(0.);     // not yet implemented
+    vt_q->push_back(0);       // not yet implemented
+    vt_hw_pt->push_back(trk.hwPt());
+    vt_hw_eta->push_back(trk.hwEta());
+    vt_hw_phi->push_back(trk.hwPhi());
+    vt_hw_d0->push_back(trk.hwD0());
+    vt_hw_z0->push_back(trk.hwZ0());
+    vt_hw_beta->push_back(trk.hwBeta());
+    vt_hw_charge->push_back(trk.hwCharge());
+    vt_hw_qual->push_back(trk.hwQual());
+    vt_model_invpt->push_back(trk.modelInvpt());
+    vt_model_phi->push_back(trk.modelPhi());
+    vt_model_eta->push_back(trk.modelEta());
+    vt_model_d0->push_back(trk.modelD0());
+    vt_model_z0->push_back(trk.modelZ0());
+    vt_model_beta->push_back(trk.modelBeta());
+    vt_model_qual->push_back(trk.modelQual());
+    vt_emtf_mode_v1->push_back(trk.emtfModeV1());
+    vt_emtf_mode_v2->push_back(trk.emtfModeV2());
+    vt_endcap->push_back(trk.endcap());
+    vt_sector->push_back(trk.sector());
+    vt_bx->push_back(trk.bx());
+    vt_unconstrained->push_back(trk.unconstrained());
+    vt_valid->push_back(trk.valid());
+    vt_hitref0->push_back(trk.segRefArray().at(0));
+    vt_hitref1->push_back(trk.segRefArray().at(1));
+    vt_hitref2->push_back(trk.segRefArray().at(2));
+    vt_hitref3->push_back(trk.segRefArray().at(3));
+    vt_hitref4->push_back(trk.segRefArray().at(4));
+    vt_hitref5->push_back(trk.segRefArray().at(5));
+    vt_hitref6->push_back(trk.segRefArray().at(6));
+    vt_hitref7->push_back(trk.segRefArray().at(7));
+    vt_hitref8->push_back(trk.segRefArray().at(8));
+    vt_hitref9->push_back(trk.segRefArray().at(9));
+    vt_hitrefA->push_back(trk.segRefArray().at(10));
+    vt_hitrefB->push_back(trk.segRefArray().at(11));
+    vt_nhits->push_back(get_nhits_fn(trk));
   }
   (*vt_size) = emtf_tracks.size();
 
