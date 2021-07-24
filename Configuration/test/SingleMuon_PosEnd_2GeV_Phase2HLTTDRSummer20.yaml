@@ -1,0 +1,22 @@
+args: L1TMuonSimulations/Configuration/python/SingleMuon_PosEnd_2GeV_cfi.py
+beamspot: HLLHC14TeV
+conditions: auto:phase2_realistic
+customise: >-
+  SimGeneral/MixingModule/customiseStoredTPConfig.higherPtTP,
+  SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000,
+  L1Trigger/Configuration/customisePhase2TTOn110.customisePhase2TTOn110,
+  L1TMuonSimulations/Configuration/customise.customise_ntupler_step
+datatier: GEN-SIM-DIGI-RAW
+era: Phase2C9
+eventcontent: FEVTDEBUGHLT
+fileout: file:SingleMuon_Endcap.root
+geometry: Extended2026D49
+mc: null
+#nThreads: '4'
+no_exec: null
+number: '100'
+pileup: NoPileUp
+python_filename: pset_SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20.py
+#step: GEN,SIM,DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2
+step: GEN,SIM,DIGI:pdigi_valid,L1TrackTrigger,L1
+

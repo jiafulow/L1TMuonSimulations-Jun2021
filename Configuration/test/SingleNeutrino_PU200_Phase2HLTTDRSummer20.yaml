@@ -1,0 +1,21 @@
+args: step1
+conditions: auto:phase2_realistic
+customise: >-
+  SimGeneral/MixingModule/customiseStoredTPConfig.higherPtTP,
+  SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000,
+  L1Trigger/Configuration/customisePhase2TTOn110.customisePhase2TTOn110,
+  L1TMuonSimulations/Configuration/customise.customise_ntupler_step
+datatier: GEN-SIM-DIGI-RAW
+era: Phase2C9
+eventcontent: FEVTDEBUGHLT
+#filein: dbs:/MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20DIGI-PU200_110X_mcRun4_realistic_v3-v3/GEN-SIM-DIGI-RAW
+filein: /store/mc/Phase2HLTTDRWinter20DIGI/MinBias_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW/PU200_110X_mcRun4_realistic_v3-v3/10000/039CB741-9E11-F84E-809D-4BF8BA057ECE.root
+fileout: file:step1.root
+geometry: Extended2026D49
+mc: null
+#nThreads: '4'
+no_exec: null
+number: '100'
+python_filename: pset_SingleNeutrino_PU200_Phase2HLTTDRSummer20.py
+step: L1TrackTrigger,L1
+
