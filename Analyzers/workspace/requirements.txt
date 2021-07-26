@@ -1,0 +1,5 @@
+# The packages are all available directly from CMSSW
+# Assume python_version == 2.7 (as used by CMSSW)
+numpy
+six
+matplotlib
