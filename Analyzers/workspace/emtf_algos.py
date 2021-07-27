@@ -56,7 +56,7 @@ fw_th_invalid = 0
 # Total: 12 (5 from CSC + 4 from RPC + 3 from GEM)
 def find_emtf_site_initializer():
   default_value = -99
-  lut = np.full((5,5,5), default_value, dtype=np.int32)  # (type, station, ring) -> site
+  lut = np.full((5,5,5), default_value, dtype=np.int32)  # (subsystem, station, ring) -> site
   lut[1,1,4] = 0  # ME1/1a
   lut[1,1,1] = 0  # ME1/1b
   lut[1,1,2] = 1  # ME1/2
@@ -79,10 +79,10 @@ def find_emtf_site_initializer():
   lut[2,4,3] = 8  # RE4/3
   lut[3,1,1] = 9  # GE1/1
   lut[3,2,1] = 10 # GE2/1
-  lut[4,1,1] = 11 # ME0
+  lut[4,1,4] = 11 # ME0
 
-  def lookup(_type, station, ring):
-    multi_index = np.array([_type, station, ring])
+  def lookup(subsystem, station, ring):
+    multi_index = np.array([subsystem, station, ring])
     flat_index = np.ravel_multi_index(multi_index, lut.shape)
     item = np.take(lut, flat_index)
     return item
@@ -95,7 +95,7 @@ find_emtf_site = find_emtf_site_initializer()
 # Total: 19 (9 from CSC + 9 from GEM & RPC + 1 from ME0)
 def find_emtf_host_initializer():
   default_value = -99
-  lut = np.full((5,5,5), default_value, dtype=np.int32)  # (type, station, ring) -> host
+  lut = np.full((5,5,5), default_value, dtype=np.int32)  # (subsystem, station, ring) -> host
   lut[1,1,4] = 0  # ME1/1a
   lut[1,1,1] = 0  # ME1/1b
   lut[1,1,2] = 1  # ME1/2
@@ -118,10 +118,10 @@ def find_emtf_host_initializer():
   lut[2,4,1] = 16 # RE4/1
   lut[2,4,2] = 17 # RE4/2
   lut[2,4,3] = 17 # RE4/3
-  lut[4,1,1] = 18 # ME0
+  lut[4,1,4] = 18 # ME0
 
-  def lookup(_type, station, ring):
-    multi_index = np.array([_type, station, ring])
+  def lookup(subsystem, station, ring):
+    multi_index = np.array([subsystem, station, ring])
     flat_index = np.ravel_multi_index(multi_index, lut.shape)
     item = np.take(lut, flat_index)
     return item
@@ -134,13 +134,10 @@ find_emtf_host = find_emtf_host_initializer()
 def decode_emtf_site_initializer():
   lut_0 = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4])  # exact
   lut_1 = np.array([1, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 1])  # exact
-  lut_2 = np.array([1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1])  # inexact
+  lut_2 = np.array([1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 4])  # inexact
 
   def lookup(emtf_site):
-    _type = np.take(lut_0, emtf_site)
-    station = np.take(lut_1, emtf_site)
-    ring = np.take(lut_2, emtf_site)
-    return (_type, station, ring)
+    return np.take([lut_0, lut_1, lut_2], emtf_site, axis=1)
   return lookup
 
 # The initializer will instantiate the lookup tables
@@ -150,13 +147,10 @@ decode_emtf_site = decode_emtf_site_initializer()
 def decode_emtf_host_initializer():
   lut_0 = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 2, 3, 2, 2, 2, 2, 2, 4])  # exact
   lut_1 = np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 1, 1, 1, 2, 2, 3, 3, 4, 4, 1])  # exact
-  lut_2 = np.array([1, 2, 3, 1, 2, 1, 2, 1, 2, 1, 2, 3, 1, 2, 1, 2, 1, 2, 1])  # inexact
+  lut_2 = np.array([1, 2, 3, 1, 2, 1, 2, 1, 2, 1, 2, 3, 1, 2, 1, 2, 1, 2, 4])  # inexact
 
   def lookup(emtf_host):
-    _type = np.take(lut_0, emtf_host)
-    station = np.take(lut_1, emtf_host)
-    ring = np.take(lut_2, emtf_host)
-    return (_type, station, ring)
+    return np.take([lut_0, lut_1, lut_2], emtf_host, axis=1)
   return lookup
 
 # The initializer will instantiate the lookup tables
@@ -174,7 +168,7 @@ host_to_site_lut = np.array([
 # Hack ME0 chamber number
 # Converting from 20-deg chamber into 10-deg chamber
 def hack_me0_hit_chamber(hit):
-  if hit.type == kME0:
+  if hit.subsystem == kME0:
     old_chamber = hit.chamber
     new_chamber = (old_chamber - 1) * 2 + 1
     if hit.endcap == 1:  # positive endcap
@@ -185,8 +179,14 @@ def hack_me0_hit_chamber(hit):
           pass
         elif hit.strip > (767 - 192):  # last 5 deg (1/4 of chamber)
           new_chamber -= 1
-      except:
-        pass
+      except AttributeError:
+        old_chamber_phi = (old_chamber - 1) * 20.
+        if delta_phi_deg(hit.phi, old_chamber_phi) > 5.:
+          new_chamber += 1
+        elif delta_phi_deg(hit.phi, old_chamber_phi) > -5.:
+          pass
+        else:
+          new_chamber -= 1
     else:  # negative endcap
       try:
         if hit.strip > (767 - 192):  # first 5 deg (1/4 of chamber)
@@ -195,8 +195,14 @@ def hack_me0_hit_chamber(hit):
           pass
         elif hit.strip <= 191:  # last 5 deg (1/4 of chamber)
           new_chamber -= 1
-      except:
-        pass
+      except AttributeError:
+        old_chamber_phi = (old_chamber - 1) * 20.
+        if delta_phi_deg(hit.phi, old_chamber_phi) > 5.:
+          new_chamber += 1
+        elif delta_phi_deg(hit.phi, old_chamber_phi) > -5.:
+          pass
+        else:
+          new_chamber -= 1
     if new_chamber == 0:
       new_chamber += 36
 
@@ -209,7 +215,7 @@ def hack_me0_hit_chamber(hit):
       if hit.neighbor:
         get_next_sector = lambda sector: (sector + 1) if sector != 6 else (sector + 1 - 6)
         hit.sector = get_next_sector(hit.sector)
-    except:
+    except AttributeError:
       pass
   return
 
@@ -217,7 +223,7 @@ def hack_me0_hit_chamber(hit):
 # Total: 115 (6*9*2 + 7)
 def find_emtf_chamber_initializer():
   default_value = -99
-  lut = np.full((5,5,10,4), default_value, dtype=np.int32)  # (type, station, cscid, subsector) -> chamber
+  lut = np.full((5,5,10,4), default_value, dtype=np.int32)  # (subsystem, station, cscid, subsector) -> chamber
   lut[1,1,1,1] = 0   # ME1/1 sub 1
   lut[1,1,2,1] = 1   # ME1/1 sub 1
   lut[1,1,3,1] = 2   # ME1/1 sub 1
@@ -338,9 +344,9 @@ def find_emtf_chamber_initializer():
   lut[4,1,2,3] = 114 # ME0 neigh
   lut[4,1,3,3] = 114 # ME0 neigh
 
-  def lookup(_type, station, cscid, subsector, neighbor):
+  def lookup(subsystem, station, cscid, subsector, neighbor):
     subsector = np.where(neighbor, 3, subsector)  # neighbor -> subsector 3
-    multi_index = np.array([_type, station, cscid, subsector])
+    multi_index = np.array([subsystem, station, cscid, subsector])
     flat_index = np.ravel_multi_index(multi_index, lut.shape)
     item = np.take(lut, flat_index)
     return item
@@ -419,21 +425,20 @@ def find_emtf_zones_lut():
 def find_emtf_zones_initializer():
   lut = find_emtf_zones_lut()
 
-  def lookup(emtf_host, emtf_theta):
-    emtf_host = np.asarray(emtf_host)
-    emtf_theta = np.asarray(emtf_theta)
+  def lookup(emtf_host, emtf_theta1, emtf_theta2=None):
+    emtf_host = np.atleast_1d(np.asarray(emtf_host))
+    emtf_theta1 = np.atleast_1d(np.asarray(emtf_theta1))
+    if emtf_theta2 is not None:
+      emtf_theta2 = np.atleast_1d(np.asarray(emtf_theta2))
     bounds = np.take(lut, emtf_host, axis=0)
     # Create a boolean array representing the bits in a uint8 array. Set the last 3 bits.
     # Then, pack into a uint8 array
-    if emtf_host.ndim == 0:
-      result = np.zeros(8, dtype=np.bool)
-      result[-3:] = (bounds[..., 0] <= emtf_theta) & (emtf_theta <= bounds[..., 1])
-      result = np.packbits(result)
-    else:
-      result = np.zeros(emtf_host.shape + (8,), dtype=np.bool)
-      result[..., -3:] = (bounds[..., 0] <= emtf_theta[:, np.newaxis]) & (emtf_theta[:, np.newaxis] <= bounds[..., 1])
-      result = np.packbits(result)
-    return result
+    result = np.zeros(emtf_host.shape + (8,), dtype=np.bool)
+    result[..., -3:] = (bounds[..., 0] <= emtf_theta1[:, np.newaxis]) & (emtf_theta1[:, np.newaxis] <= bounds[..., 1])
+    if emtf_theta2 is not None:
+      result[..., -3:] |= (bounds[..., 0] <= emtf_theta2[:, np.newaxis]) & (emtf_theta2[:, np.newaxis] <= bounds[..., 1])
+    result = np.packbits(result)
+    return np.squeeze(result)
   return lookup
 
 # The initializer will instantiate the lookup table
@@ -471,20 +476,15 @@ def find_emtf_timezones_initializer():
   lut = find_emtf_timezones_lut()
 
   def lookup(emtf_host, bx):
-    emtf_host = np.asarray(emtf_host)
-    bx = np.asarray(bx)
+    emtf_host = np.atleast_1d(np.asarray(emtf_host))
+    bx = np.atleast_1d(np.asarray(bx))
     bounds = np.take(lut, emtf_host, axis=0)
     # Create a boolean array representing the bits in a uint8 array. Set the last 3 bits.
     # Then, pack into a uint8 array
-    if emtf_host.ndim == 0:
-      result = np.zeros(8, dtype=np.bool)
-      result[-3:] = (bounds[..., 0] <= bx) & (bx <= bounds[..., 1])
-      result = np.packbits(result)
-    else:
-      result = np.zeros(emtf_host.shape + (8,), dtype=np.bool)
-      result[..., -3:] = (bounds[..., 0] <= bx[:, np.newaxis]) & (bx[:, np.newaxis] <= bounds[..., 1])
-      result = np.packbits(result)
-    return result
+    result = np.zeros(emtf_host.shape + (8,), dtype=np.bool)
+    result[..., -3:] = (bounds[..., 0] <= bx[:, np.newaxis]) & (bx[:, np.newaxis] <= bounds[..., 1])
+    result = np.packbits(result)
+    return np.squeeze(result)
   return lookup
 
 # The initializer will instantiate the lookup table
@@ -579,33 +579,25 @@ def find_emtf_img_col_inverse(emtf_img_col):
   return (emtf_img_col * coarse_emtf_strip) + (coarse_emtf_strip // 2) + min_emtf_strip
 
 # ______________________________________________________________________________
+# Find emtf_phi, emtf_theta, emtf_bend, emtf_qual, emtf_time
 def find_emtf_phi(hit):
-  #assert (0 <= hit.emtf_phi) and ((hit.type != kDT and hit.emtf_phi < 5000) or (hit.type == kDT))
+  #assert (0 <= hit.emtf_phi) and ((hit.subsystem != kDT and hit.emtf_phi < 5000) or (hit.subsystem == kDT))
   emtf_phi = np.int32(hit.emtf_phi)
   return emtf_phi
 
-def find_emtf_theta(hit):
-  #assert (hit.emtf_theta > 0)
-  emtf_theta = np.int32(hit.emtf_theta)
-  if hit.type == kDT:
-    # wire -1 means no theta SL
-    # quality 0&1 are RPC digis
-    if (hit.wire == -1) or (hit.quality < 2):
-      if hit.station == 1:
-        emtf_theta = 112
-      elif hit.station == 2:
-        emtf_theta = 122
-      elif hit.station == 3:
-        emtf_theta = 131
-    else:
-      pass
-  else:  # non-DT
-    pass
-  return emtf_theta
+def find_emtf_theta1(hit):
+  #assert (hit.emtf_theta1 > 0)
+  emtf_theta1 = np.int32(hit.emtf_theta1)
+  return emtf_theta1
+
+def find_emtf_theta2(hit):
+  #assert (hit.emtf_theta2 > 0)
+  emtf_theta2 = np.int32(hit.emtf_theta2)
+  return emtf_theta2
 
 def find_emtf_bend(hit):
   emtf_bend = np.int32(hit.bend)
-  if hit.type == kCSC:
+  if hit.subsystem == kCSC:
     # Special case for ME1/1a:
     # rescale the bend to the same scale as ME1/1b
     if hit.station == 1 and hit.ring == 4:
@@ -614,10 +606,10 @@ def find_emtf_bend(hit):
     emtf_bend *= hit.endcap
     emtf_bend = np.round(emtf_bend.astype(np.float32) * 0.5001).astype(np.int32)  # from 1/32-strip unit to 1/16-strip unit
     emtf_bend = np.clip(emtf_bend, -16, 15)
-  elif hit.type == kME0:
+  elif hit.subsystem == kME0:
     emtf_bend = np.round(emtf_bend.astype(np.float32) * 0.5001).astype(np.int32)  # from 1/4-strip unit to 1/2-strip unit
     emtf_bend = np.clip(emtf_bend, -64, 63)
-  elif hit.type == kDT:
+  elif hit.subsystem == kDT:
     if hit.quality >= 4:
       emtf_bend = np.clip(emtf_bend, -512, 511)
     else:
@@ -636,44 +628,6 @@ def find_emtf_time(hit):
   emtf_time = np.int32(hit.time)
   emtf_time = np.clip(emtf_time, -8, 7)
   return emtf_time
-
-# ______________________________________________________________________________
-# Check whether hit is very legal and very cool
-def is_emtf_legit_hit(hit):
-  def check_type(hit):
-    is_dt = (hit.type == kDT)
-    return (not is_dt)
-  def check_phi(hit):
-    if hasattr(hit, 'emtf_phi'):
-      if hit.type == kME0 or hit.type == kDT:
-        return hit.emtf_phi > 0
-    return True
-  def check_theta(hit):
-    if hasattr(hit, 'emtf_theta'):
-      if hit.type == kME0:
-        return hit.emtf_theta > 0
-    return True
-  return check_type(hit) and check_phi(hit) and check_theta(hit)
-
-# Check whether hit is very legal and very cool for Run 2
-def is_emtf_legit_hit_run2(hit):
-  def check_type(hit):
-    is_csc = (hit.type == kCSC)
-    is_rpc_run2 = (hit.type == kRPC) \
-        and not ((hit.station == 3 or hit.station == 4) and hit.ring == 1) \
-        and not ((hit.station == 1 or hit.station == 2) and hit.ring == 3)
-    return (is_csc or is_rpc_run2)
-  def check_phi(hit):
-    if hasattr(hit, 'emtf_phi'):
-      if hit.type == kME0 or hit.type == kDT:
-        return hit.emtf_phi > 0
-    return True
-  def check_theta(hit):
-    if hasattr(hit, 'emtf_theta'):
-      if hit.type == kME0:
-        return hit.emtf_theta > 0
-    return True
-  return check_type(hit) and check_phi(hit) and check_theta(hit)
 
 # ______________________________________________________________________________
 # Find particle zone based on eta
