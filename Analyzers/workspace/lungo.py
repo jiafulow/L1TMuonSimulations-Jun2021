@@ -9,6 +9,12 @@ import numpy as np
 from emtf_algos import *
 from emtf_ntuples import *
 
+try:
+  import third_party.emtf_tree as emtf_tree
+except ImportError:
+  raise ImportError(
+    'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
+
 
 class _BaseAnalysis(object):
   """Abstract base class."""
@@ -335,12 +341,14 @@ if use_condor:
   nargs = 3
   if len(sys.argv) != (nargs + 1):
     raise RuntimeError('Expected num of arguments: {}'.format(nargs))
-  os.environ['ROOTPY_GRIDMODE'] = 'true'
   era = sys.argv[1]
   analysis = sys.argv[2]
   jobid = int(sys.argv[3])
   maxevents = -1
   verbosity = 0
+
+# Logger
+logger = emtf_tree.get_logger()
 
 
 # Decorator
@@ -348,18 +356,17 @@ def app_decorator(fn):
   def wrapper(*args, **kwargs):
     # Begin
     start_time = datetime.now()
-    print('[INFO] Current time    : {}'.format(start_time))
-    print('[INFO] Using cmssw     : {}'.format(os.environ['CMSSW_VERSION']))
-    print('[INFO] Using condor    : {}'.format(use_condor))
-    print('[INFO] Using era       : {}'.format(era))
-    print('[INFO] Using analysis  : {}'.format(analysis))
-    print('[INFO] Using jobid     : {}'.format(jobid))
-    print('[INFO] Using maxevents : {}'.format(maxevents))
+    logger.info('Using cmssw     : {}'.format(os.environ['CMSSW_VERSION']))
+    logger.info('Using condor    : {}'.format(use_condor))
+    logger.info('Using era       : {}'.format(era))
+    logger.info('Using analysis  : {}'.format(analysis))
+    logger.info('Using jobid     : {}'.format(jobid))
+    logger.info('Using maxevents : {}'.format(maxevents))
     # Run
     fn(*args, **kwargs)
     # End
     stop_time = datetime.now()
-    print('[INFO] Elapsed time    : {}'.format(stop_time - start_time))
+    logger.info('Elapsed time    : {}'.format(stop_time - start_time))
     return
 
   return wrapper

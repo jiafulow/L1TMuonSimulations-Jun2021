@@ -16,9 +16,6 @@ from six.moves import range, zip, map, filter
 # Trigger primitives
 kDT, kCSC, kRPC, kGEM, kME0 = 0, 1, 2, 3, 4
 
-# Logging levels
-kDEBUG, kINFO, kWARNING, kERROR, kFATAL = 0, 1, 2, 3, 4
-
 # ______________________________________________________________________________
 # Configs
 
@@ -351,11 +348,47 @@ def save_np_arrays(outfile, outdict):
   with contextlib_nullcontext(outfile) as f:
     np.savez_compressed(f, **outdict)
 
-def save_root_histograms(outfile, histograms):
-  from rootpy.io import root_open
-  with root_open(outfile, 'recreate') as f:
-    for (k, v) in six.iteritems(histograms):
-      v.Write()
+def stack_np_arrays(lst):
+  adict = {}
+  outdict = {}
+
+  def _stack_row_splits(lst):
+    # Set the first entry to zero.
+    new_row_splits = [0]
+    for row_splits in lst:
+      if not (isinstance(row_splits, (np.ndarray, np.generic)) and
+              row_splits.dtype in (np.int64, np.int32) and row_splits.ndim == 1):
+        raise TypeError("row_splits must be a 1D int32 or int64 numpy array")
+      # Ignore the first entry in row_splits, as the first entry is always zero.
+      # Increment all the entries in row_splits by the last value in new_row_splits.
+      new_row_splits.extend(new_row_splits[-1] + row_splits[1:])
+    new_row_splits = np.asarray(new_row_splits, dtype=np.int32)
+    return new_row_splits
+
+  # list of dicts -> dict of lists
+  for i, x in enumerate(lst):
+    for k, v in six.iteritems(x):
+      if i == 0:
+        adict[k] = [v]
+      else:
+        adict[k].append(v)
+
+  # dict of lists -> dict of ndarrays
+  for k, v in six.iteritems(adict):
+    if k.endswith('_row_splits'):
+      new_v = _stack_row_splits(v)
+    elif v[0].ndim == 0:
+      new_v = np.array(v)
+    elif v[0].ndim == 1:
+      new_v = np.hstack(v)
+    elif v[0].ndim == 2:
+      new_v = np.vstack(v)
+    elif v[0].ndim == 3:
+      new_v = np.dstack(v)
+    else:
+      new_v = np.concatenate(v, axis=-1)
+    outdict[k] = new_v
+  return outdict
 
 def hist_digitize(x, bins, ma_fill_value=999999):
   """

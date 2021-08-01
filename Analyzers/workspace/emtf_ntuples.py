@@ -14,40 +14,47 @@ from six.moves import range, zip, map, filter
 # Configs
 
 # Parent directory
-eos_prefix = 'root://cmsxrootd-site.fnal.gov//store/group/l1upgrades/L1MuonTrigger/P2_11_1_7/'
+_EOS_PREFIX = 'root://cmsxrootd-site.fnal.gov//store/group/l1upgrades/L1MuonTrigger/P2_11_1_7/'
 
 
 # ______________________________________________________________________________
 # Functions
 
-# rootpy is no longer included in 11_1_7, as supposedly it doesn't work with the newer version of root/pyroot.
-# But it does at least work in 11_1_7.
-try:
-  import rootpy.tree
-except ImportError:
-  import os
-  import sys
-  if os.environ['CMSSW_VERSION'] == 'CMSSW_11_1_7':
-    sys.path.insert(1, '/cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/py2-rootpy/1.0.1-bcolbf4/lib/python2.7/site-packages/')
-  import rootpy.tree
+def load_tree(infiles,
+              load_hits=True,
+              load_simhits=True,
+              load_tracks=True,
+              load_tttracks=False,
+              load_particles=True,
+              use_multiprocessing=False):
+  from third_party.emtf_tree import TreeChain, TreeQueue
 
+  my_collections = []  # used for tree.define_collection()
+  my_branches = []  # used for tree.activate()
+  cache_size = 10000000  # 10 MB
+  if load_hits:
+    my_collections.append(dict(name='hits', prefix='vh_', size='vh_size'))
+    my_branches.append('vh_*')
+  if load_simhits:
+    my_collections.append(dict(name='simhits', prefix='vc_', size='vc_size'))
+    my_branches.append('vc_*')
+  if load_tracks:
+    my_collections.append(dict(name='tracks', prefix='vt_', size='vt_size'))
+    my_branches.append('vt_*')
+  if load_tttracks:
+    my_collections.append(dict(name='tttracks', prefix='vd_', size='vd_size'))
+    my_branches.append('vd_*')
+  if load_particles:
+    my_collections.append(dict(name='particles', prefix='vp_', size='vp_size'))
+    my_branches.append('vp_*')
 
-def load_tree(infiles):
-  from rootpy.tree import TreeChain
-  from rootpy.ROOT import gROOT
-  gROOT.SetBatch(True)
+  if use_multiprocessing:
+    tree = TreeQueue('ntupler/tree', infiles, cache=True, cache_size=cache_size, branches=my_branches)
+  else:
+    tree = TreeChain('ntupler/tree', infiles, cache=True, cache_size=cache_size, branches=my_branches)
 
-  def truncate_list(lst):
-    if isinstance(lst, list) and len(lst) > 10:
-      return lst[:5] + ['...'] + lst[-5:]
-    else:
-      return lst
-  print('[INFO] Opening files: {0}'.format(truncate_list(infiles)))
-  tree = TreeChain('ntupler/tree', infiles, cache=True)
-  tree.define_collection(name='hits', prefix='vh_', size='vh_size')
-  tree.define_collection(name='simhits', prefix='vc_', size='vc_size')
-  tree.define_collection(name='tracks', prefix='vt_', size='vt_size')
-  tree.define_collection(name='particles', prefix='vp_', size='vp_size')
+  for coll_kwargs in my_collections:
+    tree.define_collection(**coll_kwargs)
   return tree
 
 
@@ -57,16 +64,82 @@ def load_pgun_test():
 
 
 def load_pgun_batch(k):
-  my_range = np.split(np.arange(1000), 100)[k]
-  my_eos_prefix1 = eos_prefix + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191232/'
-  my_eos_prefix2 = eos_prefix + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191248/'
-  infiles = []
-  for i in my_range:
-    infiles.append(my_eos_prefix1 + '{0:04d}/ntuple_{1}.root'.format((i + 1) // 1000, (i + 1)))
-    infiles.append(my_eos_prefix2 + '{0:04d}/ntuple_{1}.root'.format((i + 1) // 1000, (i + 1)))
-  tree = load_tree(infiles)
-  return tree
+  dataset = SingleMuon()
+  my_range = np.split(np.arange(len(dataset)), 100)[k]
+  infiles = dataset[my_range]
+  return load_tree(infiles)
 
 
 def load_pgun_displaced_batch(k):
-  return NotImplemented
+  dataset = SingleMuonDisplaced()
+  my_range = np.split(np.arange(len(dataset)), 100)[k]
+  infiles = dataset[my_range]
+  return load_tree(infiles)
+
+
+def multiprocessing_pgun(worker_fn, union_fn, num_workers=10, num_files=None):
+  from multiprocessing import Process, Queue, cpu_count
+
+  if num_workers > cpu_count():
+    num_workers = cpu_count()
+
+  dataset = SingleMuon()
+  if num_files is None:
+    infiles = dataset[:]
+  else:
+    infiles = dataset[:num_files]
+  task_queue = Queue()
+  done_queue = Queue()
+  sentinels = []
+
+  for _ in range(num_workers):
+    Process(target=worker_fn, args=(task_queue, done_queue)).start()
+    sentinels.append(None)
+  for infile in infiles + sentinels:
+    task_queue.put(infile)
+  result = union_fn(num_workers, done_queue)
+  return result
+
+
+# ______________________________________________________________________________
+# Datasets
+
+class _BaseDataset(object):
+  """Abstract base class."""
+
+  def __len__(self):
+    return 0
+
+  def __getitem__(self, index):
+    raise IndexError
+
+
+class SingleMuon(_BaseDataset):
+  SIZE = 2000
+  PREFIX0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191232/'
+  PREFIX1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191248/'
+
+  def __len__(self):
+    return self.SIZE
+
+  def __getitem__(self, index):
+    if hasattr(index, '__iter__'):
+      index_range = index
+      return [self[index] for index in index_range]
+    elif isinstance(index, slice):
+      index_range = range(*index.indices(len(self)))
+      return self[index_range]
+    return self.getitem(index)
+
+  def getitem(self, index):
+    if index % 2 == 0:
+      prefix = self.PREFIX0
+    else:
+      prefix = self.PREFIX1
+    i = index // 2
+    filename = '{0}{1:04d}/ntuple_{2}.root'.format(prefix, (i + 1) // 1000, (i + 1))
+    return filename
+
+
+class SingleMuonDisplaced(_BaseDataset):
+  pass
