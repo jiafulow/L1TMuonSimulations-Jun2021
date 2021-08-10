@@ -59,7 +59,7 @@ def load_tree(infiles,
 
 
 def load_pgun_test():
-  infile = '../test/ntuple_SingleMuon_Endcap_add.20210724.root'
+  infile = '../test/ntuple_SingleMuon_Endcap_add.20210808.root'
   return load_tree(infile)
 
 
@@ -77,30 +77,6 @@ def load_pgun_displaced_batch(k):
   return load_tree(infiles)
 
 
-def multiprocessing_pgun(worker_fn, union_fn, num_workers=10, num_files=None):
-  from multiprocessing import Process, Queue, cpu_count
-
-  if num_workers > cpu_count():
-    num_workers = cpu_count()
-
-  dataset = SingleMuon()
-  if num_files is None:
-    infiles = dataset[:]
-  else:
-    infiles = dataset[:num_files]
-  task_queue = Queue()
-  done_queue = Queue()
-  sentinels = []
-
-  for _ in range(num_workers):
-    Process(target=worker_fn, args=(task_queue, done_queue)).start()
-    sentinels.append(None)
-  for infile in infiles + sentinels:
-    task_queue.put(infile)
-  result = union_fn(num_workers, done_queue)
-  return result
-
-
 # ______________________________________________________________________________
 # Datasets
 
@@ -116,8 +92,8 @@ class _BaseDataset(object):
 
 class SingleMuon(_BaseDataset):
   SIZE = 2000
-  PREFIX0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191232/'
-  PREFIX1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210727_191248/'
+  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184102/'
+  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184117/'
 
   def __len__(self):
     return self.SIZE
@@ -133,9 +109,9 @@ class SingleMuon(_BaseDataset):
 
   def getitem(self, index):
     if index % 2 == 0:
-      prefix = self.PREFIX0
+      prefix = self.PREFIX_0
     else:
-      prefix = self.PREFIX1
+      prefix = self.PREFIX_1
     i = index // 2
     filename = '{0}{1:04d}/ntuple_{2}.root'.format(prefix, (i + 1) // 1000, (i + 1))
     return filename

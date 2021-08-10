@@ -13,7 +13,7 @@ try:
   import third_party.emtf_tree as emtf_tree
 except ImportError:
   raise ImportError(
-    'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
+      'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
 
 
 class _BaseAnalysis(object):
@@ -43,22 +43,21 @@ class DummyAnalysis(_BaseAnalysis):
 
       if verbosity >= 1:
         print('evt {0} has {1} particles, {2} simhits, {3} hits and {4} tracks'.format(
-          ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
+            ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
 
       # Particles
       part = evt.particles[0]  # particle gun
       if verbosity >= 1:
         ipart = 0
         print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f}'.format(
-          ipart, part.pt, part.eta, part.phi, part.invpt, part.d0))
+            ipart, part.pt, part.eta, part.phi, part.invpt, part.d0))
 
       # Sim hits
       if verbosity >= 1:
         for isimhit, simhit in enumerate(evt.simhits):
-          simhit_endcap = 1 if simhit.z >= 0 else -1
           simhit_sector = get_trigger_sector(simhit.ring, simhit.station, simhit.chamber)
           simhit_bx = 0
-          simhit_id = (simhit.subsystem, simhit.station, simhit.ring, get_trigger_endsec(simhit_endcap, simhit_sector),
+          simhit_id = (simhit.subsystem, simhit.station, simhit.ring, get_trigger_endsec(simhit.endcap, simhit_sector),
                        simhit.chamber, simhit.layer, simhit_bx)
           print('.. simhit {0} {1} {2:.3f} {3:.3f}'.format(isimhit, simhit_id, simhit.phi, simhit.theta))
 
@@ -71,15 +70,15 @@ class DummyAnalysis(_BaseAnalysis):
           if (hit.subsystem == kCSC) and (hit_sim_tp != hit.sim_tp2):
             hit_sim_tp = -1
           print('.. hit {0} {1} {2} {3} {4} {5} {6} {7}'.format(
-            ihit, hit_id, hit.emtf_phi, hit.emtf_bend, hit.emtf_theta1, hit.emtf_theta2, hit.emtf_qual1, hit_sim_tp))
+              ihit, hit_id, hit.emtf_phi, hit.emtf_bend, hit.emtf_theta1, hit.emtf_theta2, hit.emtf_qual1, hit_sim_tp))
 
       # Tracks
       if verbosity >= 1:
         for itrk, trk in enumerate(evt.tracks):
           trk_id = (get_trigger_endsec(trk.endcap, trk.sector), trk.bx)
           trk_pt = np.reciprocal(np.abs(trk.model_invpt * np.power(2., -13)))
-          print('.. trk {0} {1} {2:.3f} {3} {4} {5} {6}'.format(
-            itrk, trk_id, trk_pt, trk.model_phi, trk.model_eta, trk.model_invpt, trk.model_d0))
+          print('.. trk {0} {1} {2:.3f} {3} {4} {5} {6} {7}'.format(
+              itrk, trk_id, trk_pt, trk.model_phi, trk.model_eta, trk.model_invpt, trk.model_d0, trk.unconstrained))
 
     # End loop over events
     return
@@ -114,11 +113,11 @@ class ZoneAnalysis(_BaseAnalysis):
         continue
 
       # Find particle zone
-      zone = find_particle_zone(part.eta)
+      part_zone = find_particle_zone(part.eta)
 
       # Trigger primitives
       for ihit, hit in enumerate(evt.hits):
-        out_hits.append([hit.subsystem, hit.station, hit.ring, zone, hit.emtf_theta1])
+        out_hits.append([hit.subsystem, hit.station, hit.ring, part_zone, hit.emtf_theta1])
 
     # End loop over events
     out_hits = np.asarray(out_hits, dtype=np.int32)
@@ -186,12 +185,12 @@ class ChamberAnalysis(_BaseAnalysis):
       for ihit, hit in enumerate(evt.hits):
         ohit = [
           hit.subsystem, hit.station, get_trigger_endsec(hit.endcap, hit.sector),
-          hit.subsector, hit.cscid, hit.neighbor, hit.bx, ievt]
+          hit.subsector, hit.cscid, hit.neighbor, hit.bx, ievt,
+        ]
         out_hits.append(ohit)
 
       # Sim hits
       for isimhit, simhit in enumerate(evt.simhits):
-        simhit.endcap = 1 if simhit.z >= 0 else -1  #FIXME
         # Special case for ME0 as it is a 20-deg chamber in station 1
         if simhit.subsystem == kME0:
           hack_me0_hit_chamber(simhit)
@@ -204,7 +203,8 @@ class ChamberAnalysis(_BaseAnalysis):
         simhit.neighbor = 0
         osimhit = [
           simhit.subsystem, simhit.station, get_trigger_endsec(simhit.endcap, simhit.sector),
-          simhit.subsector, simhit.cscid, simhit.neighbor, simhit.bx, ievt]
+          simhit.subsector, simhit.cscid, simhit.neighbor, simhit.bx, ievt,
+        ]
         out_simhits.append(osimhit)
 
         # If neighbor, share simhit with the neighbor sector
@@ -214,7 +214,8 @@ class ChamberAnalysis(_BaseAnalysis):
           simhit.sector = get_next_sector(simhit.sector)
           osimhit = [
             simhit.subsystem, simhit.station, get_trigger_endsec(simhit.endcap, simhit.sector),
-            simhit.subsector, simhit.cscid, simhit.neighbor, simhit.bx, ievt]
+            simhit.subsector, simhit.cscid, simhit.neighbor, simhit.bx, ievt,
+          ]
           out_simhits.append(osimhit)
 
     # End loop over events
@@ -233,7 +234,7 @@ class ChamberAnalysis(_BaseAnalysis):
     out_hits_ievt = out_hits[:, out_hits_metadata['ievt']]
 
     out_hits_chambers = find_emtf_chamber(
-      out_hits_subsystem, out_hits_station, out_hits_cscid, out_hits_subsector, out_hits_neighbor)
+        out_hits_subsystem, out_hits_station, out_hits_cscid, out_hits_subsector, out_hits_neighbor)
     assert (out_hits_chambers != -99).all()
 
     sel = (out_hits_bx == 0) & (out_hits_sector == 0)  # check only one bx and one sector
@@ -243,7 +244,7 @@ class ChamberAnalysis(_BaseAnalysis):
     n_chambers = out_hits_chambers_sel.max() + 1
     n_events = out_hits_ievt_sel.max() + 1
     hist, _, _ = np.histogram2d(
-      out_hits_chambers_sel, out_hits_ievt_sel, bins=(range(n_chambers + 1), range(n_events + 1)))
+        out_hits_chambers_sel, out_hits_ievt_sel, bins=(range(n_chambers + 1), range(n_events + 1)))
     chamber_counts = hist.astype(np.int32)
 
     print('Check chamber num of segments')
@@ -287,7 +288,7 @@ class ChamberAnalysis(_BaseAnalysis):
     out_hits_ievt = out_simhits[:, out_simhits_metadata['ievt']]
 
     out_hits_chambers = find_emtf_chamber(
-      out_hits_subsystem, out_hits_station, out_hits_cscid, out_hits_subsector, out_hits_neighbor)
+        out_hits_subsystem, out_hits_station, out_hits_cscid, out_hits_subsector, out_hits_neighbor)
     assert (out_hits_chambers != -99).all()
 
     sel = (out_hits_bx == 0) & (out_hits_sector == 0)  # check only one bx and one sector
@@ -297,7 +298,7 @@ class ChamberAnalysis(_BaseAnalysis):
     n_chambers = out_hits_chambers_sel.max() + 1
     n_events = out_hits_ievt_sel.max() + 1
     hist, _, _ = np.histogram2d(
-      out_hits_chambers_sel, out_hits_ievt_sel, bins=(range(n_chambers + 1), range(n_events + 1)))
+        out_hits_chambers_sel, out_hits_ievt_sel, bins=(range(n_chambers + 1), range(n_events + 1)))
     chamber_counts = hist.astype(np.int32)
 
     print('Check chamber num of simhits')
@@ -347,6 +348,9 @@ if use_condor:
   maxevents = -1
   verbosity = 0
 
+# Slurm or not
+use_slurm = ('SLURM_JOB_ID' in os.environ)
+
 # Logger
 logger = emtf_tree.get_logger()
 
@@ -358,6 +362,7 @@ def app_decorator(fn):
     start_time = datetime.now()
     logger.info('Using cmssw     : {}'.format(os.environ['CMSSW_VERSION']))
     logger.info('Using condor    : {}'.format(use_condor))
+    logger.info('Using slurm     : {}'.format(use_slurm))
     logger.info('Using era       : {}'.format(era))
     logger.info('Using analysis  : {}'.format(analysis))
     logger.info('Using jobid     : {}'.format(jobid))

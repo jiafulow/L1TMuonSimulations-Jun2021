@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import numpy as np
 import collections
+from multiprocessing import Process, Queue, cpu_count
 
 from emtf_algos import *
 from emtf_ntuples import *
@@ -14,13 +15,13 @@ try:
   import third_party.emtf_tree as emtf_tree
 except ImportError:
   raise ImportError(
-    'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
+      'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
 
 try:
   import third_party.emtf_nnet as emtf_nnet
 except ImportError:
   raise ImportError(
-    'Could not import third_party.emtf_nnet. Please run get-third-party.sh first.')
+      'Could not import third_party.emtf_nnet. Please run get-third-party.sh first.')
 
 
 class _BaseAnalysis(object):
@@ -158,29 +159,29 @@ class ChamberCouncil(object):
 
 def get_part_info(part, best_sector=0, best_zone=0):
   # 10 variables
-  part_info = [
+  part_info = (
     part.invpt, part.eta, part.phi, part.vx, part.vy, part.vz, part.d0,
     part.bx, best_sector, best_zone,
-  ]
+  )
   part_info = np.asarray(part_info, dtype=np.float32)
   return part_info
 
 
 def get_track_info(trk):
-  # 15 variables
+  # 14 variables
   if trk is not None:
     trk_patt = 0  #FIXME
     trk_col = 0
     trk_zone = 0
     trk_tzone = 0
-    track_info = [
+    track_info = (
       trk.model_invpt, trk.model_phi, trk.model_eta, trk.model_d0,
       trk.model_z0, trk.model_beta, trk.model_qual, trk_patt,
       trk_col, trk_zone, trk_tzone, trk.emtf_mode_v1,
-      trk.emtf_mode_v2, trk.unconstrained, trk.valid,
-    ]
+      trk.emtf_mode_v2, trk.valid,
+    )
   else:
-    track_info = [0] * 15
+    track_info = (0,) * 14
   track_info = np.asarray(track_info, dtype=np.int32)
   return track_info
 
@@ -197,12 +198,12 @@ def get_hit_info(hit):
   hit_cscfr = getattr(hit, 'cscfr', 0)
   hit_gemdl = getattr(hit, 'gemdl', 0)
   hit_valid = getattr(hit, 'valid', 1)
-  hit_info = [
+  hit_info = (
     hit.emtf_chamber, hit_emtf_segment, hit.emtf_phi, hit_emtf_bend,
     hit.emtf_theta1, hit_emtf_theta2, hit_emtf_qual1, hit_emtf_qual2,
     hit_emtf_time, hit.zones, hit.timezones, hit_cscfr, hit_gemdl,
     hit.bx, hit.emtf_site, hit.emtf_host, hit_valid,
-  ]
+  )
   #hit_info = np.asarray(hit_info, dtype=np.int32)  # unnecessary
   return hit_info
 
@@ -217,8 +218,13 @@ class SignalAnalysis(_BaseAnalysis):
   """
 
   @classmethod
-  def worker_fn(cls, task_queue, done_queue):
+  def worker_fn(cls, signal, task_queue, done_queue):
     tree = load_tree(task_queue, use_multiprocessing=True)
+
+    if signal == 'prompt':
+      unconstrained = 0
+    else:
+      unconstrained = 1
 
     out_part = []
     out_track = []
@@ -265,11 +271,6 @@ class SignalAnalysis(_BaseAnalysis):
 
       # Sim hits
       for isimhit, simhit in enumerate(evt.simhits):
-        # Skip DT
-        if simhit.subsystem == kDT:  #FIXME
-          continue
-
-        simhit.endcap = 1 if simhit.z >= 0 else -1  #FIXME
         # Special case for ME0 as it is a 20-deg chamber in station 1
         if simhit.subsystem == kME0:
           hack_me0_hit_chamber(simhit)
@@ -308,10 +309,10 @@ class SignalAnalysis(_BaseAnalysis):
       # Tracks
       best_track = None
       for itrk, trk in enumerate(evt.tracks):
-        trk.endcap = 1 if (trk.endcap == 1) else -1  #FIXME
-        if best_track is None:
-          if trk.valid and get_trigger_endsec(trk.endcap, trk.sector) == best_sector:
-            best_track = trk
+        if (trk.valid and trk.unconstrained == unconstrained and
+            get_trigger_endsec(trk.endcap, trk.sector) == best_sector):
+          best_track = trk
+          break
 
       # Fourth, check for at least 2 stations (using sim hits)
 
@@ -353,15 +354,13 @@ class SignalAnalysis(_BaseAnalysis):
       if verbosity >= 2 and ievt < 100:
         # Event
         print('evt {0} has {1} particles, {2} simhits, {3} hits and {4} tracks'.format(
-          ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
+            ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
         # Particles
         ipart = 0
         print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f}'.format(
-          ipart, part.pt, part.eta, part.phi, part.invpt, part.d0))
+            ipart, part.pt, part.eta, part.phi, part.invpt, part.d0))
         # Sim hits
         for isimhit, simhit in enumerate(evt.simhits):
-          if simhit.subsystem == kDT:  #FIXME
-            continue
           simhit_id = (simhit.subsystem, simhit.station, simhit.ring, get_trigger_endsec(simhit.endcap, simhit.sector),
                        simhit.chamber, simhit.layer, simhit.bx)
           print('.. simhit {0} {1} {2:.3f} {3:.3f}'.format(isimhit, simhit_id, simhit.phi, simhit.theta))
@@ -373,13 +372,13 @@ class SignalAnalysis(_BaseAnalysis):
           if (hit.subsystem == kCSC) and (hit_sim_tp != hit.sim_tp2):
             hit_sim_tp = -1
           print('.. hit {0} {1} {2} {3} {4} {5} {6} {7}'.format(
-            ihit, hit_id, hit.emtf_phi, hit.emtf_bend, hit.emtf_theta1, hit.emtf_theta2, hit.emtf_qual1, hit_sim_tp))
+              ihit, hit_id, hit.emtf_phi, hit.emtf_bend, hit.emtf_theta1, hit.emtf_theta2, hit.emtf_qual1, hit_sim_tp))
         # Tracks
         for itrk, trk in enumerate(evt.tracks):
           trk_id = (get_trigger_endsec(trk.endcap, trk.sector), trk.bx)
           trk_pt = np.reciprocal(np.abs(trk.model_invpt * np.power(2., -13)))
-          print('.. trk {0} {1} {2:.3f} {3} {4} {5} {6}'.format(
-            itrk, trk_id, trk_pt, trk.model_phi, trk.model_eta, trk.model_invpt, trk.model_d0))
+          print('.. trk {0} {1} {2:.3f} {3} {4} {5} {6} {7}'.format(
+              itrk, trk_id, trk_pt, trk.model_phi, trk.model_eta, trk.model_invpt, trk.model_d0, trk.unconstrained))
         # Output
         print('best_sector: {0} rank: {1} best_zone: {2} rank: {3}'.format(
             best_sector, best_sector_rank, best_zone, best_zone_rank))
@@ -412,21 +411,43 @@ class SignalAnalysis(_BaseAnalysis):
   def union_fn(cls, num_workers, done_queue):
     outdict = [done_queue.get() for _ in range(num_workers)]
     outdict = stack_np_arrays(outdict)
-    return outdict
-
-  def run(self, signal='prompt'):
-    if signal == 'prompt':
-      outdict = multiprocessing_pgun(self.worker_fn, self.union_fn)
-    elif signal == 'displaced':
-      outdict = multiprocessing_pgun_displaced(self.worker_fn, self.union_fn)
-    else:
-      raise ValueError('Unexpected signal: {0}'.format(signal))
-
     if use_condor:
       outfile = '{0}_{1}.npz'.format(analysis, jobid)
     else:
       outfile = '{0}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
+    return
+
+  @classmethod
+  def multiprocessing_fn(cls, signal='prompt', num_workers=8, num_files=None):
+    if num_workers > cpu_count():
+      num_workers = cpu_count()
+
+    if signal == 'prompt':
+      dataset = SingleMuon()
+    elif signal == 'displaced':
+      dataset = SingleMuonDisplaced()
+    else:
+      raise ValueError('Unexpected signal: {0}'.format(signal))
+
+    if num_files is None:
+      infiles = dataset[:]
+    else:
+      infiles = dataset[:num_files]
+    task_queue = Queue()
+    done_queue = Queue()
+    sentinels = []
+
+    for _ in range(num_workers):
+      Process(target=cls.worker_fn, args=(signal, task_queue, done_queue)).start()
+      sentinels.append(None)
+    for infile in infiles + sentinels:
+      task_queue.put(infile)
+    result = cls.union_fn(num_workers, done_queue)
+    return result
+
+  def run(self, signal='prompt'):
+    self.multiprocessing_fn(signal=signal)
     return
 
 
@@ -479,6 +500,9 @@ if use_condor:
   maxevents = -1
   verbosity = 0
 
+# Slurm or not
+use_slurm = ('SLURM_JOB_ID' in os.environ)
+
 # Logger
 logger = emtf_tree.get_logger()
 
@@ -490,6 +514,7 @@ def app_decorator(fn):
     start_time = datetime.now()
     logger.info('Using cmssw     : {}'.format(os.environ['CMSSW_VERSION']))
     logger.info('Using condor    : {}'.format(use_condor))
+    logger.info('Using slurm     : {}'.format(use_slurm))
     logger.info('Using era       : {}'.format(era))
     logger.info('Using analysis  : {}'.format(analysis))
     logger.info('Using jobid     : {}'.format(jobid))
