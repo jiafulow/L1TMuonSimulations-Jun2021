@@ -21,6 +21,7 @@ __pycache__
 *~
 *.log
 *.out
+*.err
 *.orig
 *.bak
 dump.py
