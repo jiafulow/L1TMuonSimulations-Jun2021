@@ -410,14 +410,14 @@ def find_emtf_zones_lut():
   lut[14,1] = 23,36  # RE3/1
   lut[15,1] = 40,52  # RE3/2
   lut[16,1] = 23,31  # RE4/1
-  lut[17,1] = 35,52  # RE4/2
+  lut[17,1] = 35,54  # RE4/2
   #
   lut[1,2] = 52,88   # ME1/2
   lut[4,2] = 52,88   # ME2/2
   lut[6,2] = 50,88   # ME3/2
   lut[8,2] = 50,88   # ME4/2
   lut[10,2] = 52,84  # RE1/2
-  lut[13,2] = 56,88  # RE2/2
+  lut[13,2] = 52,88  # RE2/2
   lut[15,2] = 48,84  # RE3/2
   lut[17,2] = 52,84  # RE4/2
   return lut
@@ -568,7 +568,7 @@ img_row_labels = np.array([
   ['ME0'  , 'GE1/1', 'ME1/1', 'GE2/1', 'ME2/1', 'ME3/1', 'RE3/1', 'ME4/1'],
   ['GE1/1', 'ME1/1', 'ME1/2', 'GE2/1', 'ME2/1', 'ME3/1', 'RE3/1', 'ME4/1'],
   ['ME1/2', 'RE1/2', 'RE2/2', 'ME2/2', 'ME3/2', 'RE3/2', 'ME4/2', 'RE4/2'],
-], dtype=np.object)
+], dtype=np.str)
 
 def find_emtf_img_col(emtf_phi):
   emtf_phi = np.asarray(emtf_phi)
