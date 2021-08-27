@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -36,6 +37,7 @@
 #include "DataFormats/L1TrackTrigger/interface/TTTrack.h"
 #include "SimTracker/TrackTriggerAssociation/interface/TTTrackAssociationMap.h"
 
+#include "L1TMuonSimulations/NtupleTools/interface/GenParticleDescendentFinder.h"
 #include "L1TMuonSimulations/NtupleTools/interface/SubsystemMCTruth.h"
 #include "L1TMuonSimulations/NtupleTools/interface/UnaryOperation.h"
 #include "L1TMuonSimulations/NtupleTools/interface/UnaryPredicate.h"
@@ -167,6 +169,7 @@ protected:
   std::unique_ptr<std::vector<int16_t> >   vt_model_z0;        //
   std::unique_ptr<std::vector<int16_t> >   vt_model_beta;      //
   std::unique_ptr<std::vector<int16_t> >   vt_model_qual;      //
+  std::unique_ptr<std::vector<int32_t> >   vt_emtf_pt;         //
   std::unique_ptr<std::vector<int16_t> >   vt_emtf_mode_v1;    //
   std::unique_ptr<std::vector<int16_t> >   vt_emtf_mode_v2;    //
   std::unique_ptr<std::vector<int16_t> >   vt_endcap;          //
@@ -231,6 +234,7 @@ protected:
   std::unique_ptr<std::vector<int16_t> >   vp_status;          //
   std::unique_ptr<std::vector<int16_t> >   vp_decay;           //
   std::unique_ptr<std::vector<int32_t> >   vp_genp;            //
+  std::unique_ptr<std::vector<int16_t> >   vp_important;       // descend from W/Z/H
   std::unique_ptr<int32_t>                 vp_size;            //
 
   // PileupSummaryInfo
@@ -248,15 +252,21 @@ void TreeMixin::initTree() {
   // Create tree using TFileService
   edm::Service<TFileService> fs;
   tree = fs->make<TTree>("tree", "tree");
+  if (!tree) {
+    throw edm::Exception(edm::errors::FatalRootError) << "Failed to create the tree.";
+  }
 
   // Define a macro to call std::make_unique<T> with the right type, then call tree->Branch()
   // by providing the pointer.
   // E.g.
   //     vh_endcap = std::make_unique<std::vector<int16_t> >();
-  //     tree->Branch("vh_endcap", vh_endcap.get());
+  //     tree->Branch("vh_endcap", vh_endcap.get(), 256000);
+  //
+  // Note that the following TTree::Branch() signature is used:
+  //     Branch(const char *name, const char *classname, T *obj, Int_t bufsize=32000, Int_t splitlevel=99)
 #define MY_MAKE_UNIQUE_AND_BRANCH(NAME)                                   \
   (NAME) = std::make_unique<detail::remove_pointer_t<decltype(NAME)> >(); \
-  tree->Branch(#NAME, (NAME).get());
+  tree->Branch(#NAME, (NAME).get(), 256000);
 
   // Hits
   MY_MAKE_UNIQUE_AND_BRANCH(vh_subsystem)
@@ -348,6 +358,7 @@ void TreeMixin::initTree() {
   MY_MAKE_UNIQUE_AND_BRANCH(vt_model_z0)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_model_beta)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_model_qual)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_emtf_pt)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_emtf_mode_v1)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_emtf_mode_v2)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_endcap)
@@ -412,6 +423,7 @@ void TreeMixin::initTree() {
   MY_MAKE_UNIQUE_AND_BRANCH(vp_status)
   MY_MAKE_UNIQUE_AND_BRANCH(vp_decay)
   MY_MAKE_UNIQUE_AND_BRANCH(vp_genp)
+  MY_MAKE_UNIQUE_AND_BRANCH(vp_important)
   MY_MAKE_UNIQUE_AND_BRANCH(vp_size)
 
   // PileupSummaryInfo
@@ -432,7 +444,7 @@ void TreeMixin::fillTree() {
   // Define a macro to either clear a container or reset a variable to zero.
   // E.g.
   //     vh_endcap->clear();
-  // Or
+  // or
   //     (*vh_size) = 0;
 #define MY_RESET_TO_ZERO(NAME) detail::reset_to_zero((NAME).get());
 
@@ -526,6 +538,7 @@ void TreeMixin::fillTree() {
   MY_RESET_TO_ZERO(vt_model_z0)
   MY_RESET_TO_ZERO(vt_model_beta)
   MY_RESET_TO_ZERO(vt_model_qual)
+  MY_RESET_TO_ZERO(vt_emtf_pt)
   MY_RESET_TO_ZERO(vt_emtf_mode_v1)
   MY_RESET_TO_ZERO(vt_emtf_mode_v2)
   MY_RESET_TO_ZERO(vt_endcap)
@@ -590,6 +603,7 @@ void TreeMixin::fillTree() {
   MY_RESET_TO_ZERO(vp_status)
   MY_RESET_TO_ZERO(vp_decay)
   MY_RESET_TO_ZERO(vp_genp)
+  MY_RESET_TO_ZERO(vp_important)
   MY_RESET_TO_ZERO(vp_size)
 
   // PileupSummaryInfo
@@ -641,6 +655,7 @@ private:
   typedef TTTrackAssociationMap<Ref_Phase2TrackerDigi_> TTTFTrackAssociator;
 
   // Helper objects
+  std::unique_ptr<emtf::phase2::GenParticleDescendentFinder> descend_;
   std::unique_ptr<emtf::phase2::SubsystemMCTruth> truth_;
 
   // InputTags
@@ -676,7 +691,8 @@ private:
 
 // _____________________________________________________________________________
 NtupleMaker::NtupleMaker(const edm::ParameterSet& iConfig)
-    : truth_(std::make_unique<emtf::phase2::SubsystemMCTruth>(iConfig, consumesCollector())),
+    : descend_(std::make_unique<emtf::phase2::GenParticleDescendentFinder>()),
+      truth_(std::make_unique<emtf::phase2::SubsystemMCTruth>(iConfig, consumesCollector())),
       genPartTag_(iConfig.getParameter<edm::InputTag>("genPartTag")),
       simTrackTag_(iConfig.getParameter<edm::InputTag>("simTrackTag")),
       trkPartTag_(iConfig.getParameter<edm::InputTag>("trkPartTag")),
@@ -765,8 +781,11 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   std::copy_if(
       trkParts_->begin(), trkParts_->end(), std::back_inserter(trk_particles), emtf::phase2::TrackingParticlePred{});
 
+  // MC truth for W/Z/H descendents
+  descend_->build(*genParts_);
+
   // MC truth for EMTFHit
-  truth_->buildTrackingParticleLinks(trk_particles);
+  truth_->build(trk_particles);
 
   using SimHitInfoCollection = emtf::phase2::SubsystemMCTruth::SimHitInfoCollection;
   const SimHitInfoCollection& sim_hits = truth_->findSimHits();
@@ -848,7 +867,7 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
     vc_sim_tp->push_back(hit.sim_tp);
     vc_pdgid->push_back(hit.pSimHit.particleType());
     vc_process->push_back(hit.pSimHit.processType());
-    vc_mom_phi->push_back(hit.pSimHit.pabs());
+    vc_mom_p->push_back(hit.pSimHit.pabs());
     vc_mom_phi->push_back(rad_to_deg(hit.pSimHit.phiAtEntry().value()));
     vc_mom_theta->push_back(rad_to_deg(hit.pSimHit.thetaAtEntry().value()));
     vc_tof->push_back(hit.pSimHit.timeOfFlight());
@@ -859,11 +878,8 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // Tracks
   for (const auto& trk : emtf_tracks) {
     auto get_nhits_fn = [](const EMTFTrack& trk) -> int {
-      int result = 0;
-      for (auto x : trk.segValidArray()) {
-        result += x;
-      }
-      return result;
+      int n = std::accumulate(trk.segValidArray().begin(), trk.segValidArray().end(), 0);
+      return n;
     };
 
     vt_pt->push_back(0.);     // not yet implemented
@@ -888,6 +904,7 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
     vt_model_z0->push_back(trk.modelZ0());
     vt_model_beta->push_back(trk.modelBeta());
     vt_model_qual->push_back(trk.modelQual());
+    vt_emtf_pt->push_back(trk.emtfPt());
     vt_emtf_mode_v1->push_back(trk.emtfModeV1());
     vt_emtf_mode_v2->push_back(trk.emtfModeV2());
     vt_endcap->push_back(trk.endcap());
@@ -976,9 +993,12 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // ___________________________________________________________________________
   // TrackingParticles
   for (const auto& part : trk_particles) {
-    int igenPart = -1;
+    int genp = -1;
+    bool important = false;
     if (!part.genParticles().empty()) {
-      igenPart = (part.genParticles().begin())->key();
+      auto ref_key = (part.genParticles().begin())->key();
+      genp = ref_key;
+      important = descend_->isImportant(ref_key);
     }
 
     auto calc_invpt_fn = emtf::phase2::InvptOp{};
@@ -1001,7 +1021,8 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
     vp_pdgid->push_back(part.pdgId());
     vp_status->push_back(part.status());
     vp_decay->push_back(part.decayVertices().size());
-    vp_genp->push_back(igenPart);
+    vp_genp->push_back(genp);
+    vp_important->push_back(important);
   }
   (*vp_size) = trk_particles.size();
 
