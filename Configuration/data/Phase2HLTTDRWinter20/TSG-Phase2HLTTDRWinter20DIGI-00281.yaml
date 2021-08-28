@@ -1,0 +1,16 @@
+conditions: 110X_mcRun4_realistic_v3
+customise: SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000,Configuration/DataProcessing/Utils.addMonitoring
+datatier: GEN-SIM-DIGI-RAW
+era: Phase2C9
+eventcontent: FEVTDEBUGHLT
+filein: file:TSG-Phase2HLTTDRWinter20GS-00252.root
+fileout: file:TSG-Phase2HLTTDRWinter20DIGI-00281.root
+geometry: Extended2026D49
+mc: null
+no_exec: null
+number: '50'
+pileup: AVE_200_BX_25ns,{"B":(-3,3)}
+pileup_input: dbs:/MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20GS-110X_mcRun4_realistic_v3-v1/GEN-SIM
+python_filename: TSG-Phase2HLTTDRWinter20DIGI-00281_1_cfg.py
+step: DIGI:pdigi_valid,L1,L1TrackTrigger,DIGI2RAW,HLT:@fake2
+

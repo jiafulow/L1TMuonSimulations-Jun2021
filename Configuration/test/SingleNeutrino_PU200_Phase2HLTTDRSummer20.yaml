@@ -4,12 +4,14 @@ customise: >-
   SimGeneral/MixingModule/customiseStoredTPConfig.higherPtTP,
   SLHCUpgradeSimulations/Configuration/aging.customise_aging_1000,
   L1Trigger/Configuration/customisePhase2TTOn110.customisePhase2TTOn110,
-  L1TMuonSimulations/Configuration/customise.customise_ntupler_step
+  L1TMuonSimulations/Configuration/customise.customise_ntupler_step,
+  L1TMuonSimulations/Configuration/customise.remove_L1TrackTrigger_step,
+  L1TMuonSimulations/Configuration/customise.remove_L1simulation_step
 datatier: GEN-SIM-DIGI-RAW
 era: Phase2C9
 eventcontent: FEVTDEBUGHLT
-#filein: dbs:/MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20DIGI-PU200_110X_mcRun4_realistic_v3-v3/GEN-SIM-DIGI-RAW
-filein: /store/mc/Phase2HLTTDRWinter20DIGI/MinBias_TuneCP5_14TeV-pythia8/GEN-SIM-DIGI-RAW/PU200_110X_mcRun4_realistic_v3-v3/10000/039CB741-9E11-F84E-809D-4BF8BA057ECE.root
+#filein: dbs:/MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_111X_mcRun4_realistic_T15_v1-v1/FEVT
+filein: /store/mc/Phase2HLTTDRSummer20ReRECOMiniAOD/MinBias_TuneCP5_14TeV-pythia8/FEVT/PU200_111X_mcRun4_realistic_T15_v1-v1/110002/031CF6BB-92EA-D340-A3B9-8B6CD1B068EE.root
 fileout: file:step1.root
 geometry: Extended2026D49
 mc: null
