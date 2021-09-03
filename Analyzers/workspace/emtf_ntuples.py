@@ -21,79 +21,100 @@ _EOS_PREFIX = 'root://cmsxrootd-site.fnal.gov//store/group/l1upgrades/L1MuonTrig
 # Functions
 
 def load_tree(infiles,
-              load_hits=True,
-              load_simhits=True,
-              load_tracks=True,
+              load_hits=False,
+              load_simhits=False,
+              load_tracks=False,
               load_tttracks=False,
-              load_particles=True,
+              load_particles=False,
               use_multiprocessing=False):
   from emtf_tree import TreeChain, TreeQueue
 
   my_collections = []  # used for tree.define_collection()
-  my_branches = []  # used for tree.activate()
+  keep_branches = []
+  ignore_branches = []  # deactivate certain branches to make it faster
   cache_size = 10000000  # 10 MB
   if load_hits:
     my_collections.append(dict(name='hits', prefix='vh_', size='vh_size'))
-    my_branches.append('vh_*')
+    keep_branches.append('vh_*')
+    ignore_branches.append('vh_glob_phi')
+    ignore_branches.append('vh_glob_theta')
+    ignore_branches.append('vh_glob_perp')
+    ignore_branches.append('vh_glob_z')
+    ignore_branches.append('vh_glob_time')
   if load_simhits:
     my_collections.append(dict(name='simhits', prefix='vc_', size='vc_size'))
-    my_branches.append('vc_*')
+    keep_branches.append('vc_*')
+    ignore_branches.append('vc_mom_p')
+    ignore_branches.append('vc_mom_phi')
+    ignore_branches.append('vc_mom_theta')
+    ignore_branches.append('vc_tof')
   if load_tracks:
     my_collections.append(dict(name='tracks', prefix='vt_', size='vt_size'))
-    my_branches.append('vt_*')
+    keep_branches.append('vt_*')
+    ignore_branches.append('vt_pt')
+    ignore_branches.append('vt_phi')
+    ignore_branches.append('vt_theta')
+    ignore_branches.append('vt_eta')
+    ignore_branches.append('vt_invpt')
+    ignore_branches.append('vt_d0')
+    ignore_branches.append('vt_q')
+    ignore_branches.append('vt_hw_*')
   if load_tttracks:
     my_collections.append(dict(name='tttracks', prefix='vd_', size='vd_size'))
-    my_branches.append('vd_*')
+    keep_branches.append('vd_*')
   if load_particles:
     my_collections.append(dict(name='particles', prefix='vp_', size='vp_size'))
-    my_branches.append('vp_*')
+    keep_branches.append('vp_*')
+    ignore_branches.append('vp_beta')
+    ignore_branches.append('vp_mass')
+    ignore_branches.append('vp_event')
+    ignore_branches.append('vp_genp')
 
   if use_multiprocessing:
-    tree = TreeQueue('ntupler/tree', infiles, cache=True, cache_size=cache_size, branches=my_branches)
+    tree_cls = TreeQueue
   else:
-    tree = TreeChain('ntupler/tree', infiles, cache=True, cache_size=cache_size, branches=my_branches)
-
+    tree_cls = TreeChain
+  tree_name = 'ntupler/tree'
+  tree = tree_cls(tree_name, infiles, cache=True, cache_size=cache_size,
+                  branches=keep_branches, ignore_branches=ignore_branches)
   for coll_kwargs in my_collections:
     tree.define_collection(**coll_kwargs)
   return tree
 
 
 def load_pgun_test():
-  infile = '../test/ntuple_SingleMuon_Endcap_add.20210808.root'
-  return load_tree(infile)
+  infile = '../test/ntuple_SingleMuon_Endcap_Phase2HLTTDRSummer20.210808.root'
+  return load_tree(infile, load_hits=True, load_simhits=True, load_tracks=True,
+                   load_particles=True)
 
 
 def load_pgun_batch(k):
   dataset = SingleMuon()
   my_range = np.split(np.arange(len(dataset)), 100)[k]
   infiles = dataset[my_range]
-  return load_tree(infiles)
+  return load_tree(infiles, load_hits=True, load_simhits=True, load_tracks=True,
+                   load_particles=True)
 
 
 def load_pgun_displaced_batch(k):
   dataset = SingleMuonDisplaced()
   my_range = np.split(np.arange(len(dataset)), 100)[k]
   infiles = dataset[my_range]
-  return load_tree(infiles)
+  return load_tree(infiles, load_hits=True, load_simhits=True, load_tracks=True,
+                   load_particles=True)
 
 
 # ______________________________________________________________________________
 # Datasets
 
 class _BaseDataset(object):
-  """Abstract base class."""
+  """Abstract base class.
 
-  def __len__(self):
-    return 0
-
-  def __getitem__(self, index):
-    raise IndexError
-
-
-class SingleMuon(_BaseDataset):
-  SIZE = 2000
-  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184102/'
-  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184117/'
+  Sub-classes must override SIZE, PREFIX, and FNAME.
+  """
+  SIZE = 0
+  PREFIX = ''
+  FNAME = 'ntuple.root'
 
   def __len__(self):
     return self.SIZE
@@ -105,17 +126,53 @@ class SingleMuon(_BaseDataset):
     elif isinstance(index, slice):
       index_range = range(*index.indices(len(self)))
       return self[index_range]
-    return self.getitem(index)
+    else:
+      return self.getitem(index)
+
+  def __iter__(self):
+    for i in range(len(self)):
+      yield self[i]
+
+  def __contains__(self, value):
+    for v in self:
+      if v is value or v == value:
+        return True
+    return False
+
+  def _filename(self, prefix, fname, i):
+    if not prefix or not fname:
+      raise ValueError('Incorrect prefix or fname.')
+    if not fname.endswith('.root'):
+      raise ValueError('fname must be a .root file.')
+    return '{0}{1:04d}/{2}_{3}.root'.format(prefix, (i + 1) // 1000, fname[:-5], (i + 1))
+
+  def getitem(self, index):
+    return self._filename(self.PREFIX, self.FNAME, index)
+
+
+class SingleMuon(_BaseDataset):
+  SIZE = 2000
+  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184102/'
+  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184117/'
 
   def getitem(self, index):
     if index % 2 == 0:
       prefix = self.PREFIX_0
     else:
       prefix = self.PREFIX_1
-    i = index // 2
-    filename = '{0}{1:04d}/ntuple_{2}.root'.format(prefix, (i + 1) // 1000, (i + 1))
-    return filename
+    index = index // 2
+    return self._filename(prefix, self.FNAME, index)
 
 
 class SingleMuonDisplaced(_BaseDataset):
   pass
+
+
+class SingleNeutrinoPU200(_BaseDataset):
+  SIZE = 189
+  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/210831_011325/'
+
+
+class DoubleMuonPU200(_BaseDataset):
+  SIZE = 28
+  PREFIX = _EOS_PREFIX + 'DoubleMuon_PU200_Phase2HLTTDRSummer20/DoubleMuon_gun_FlatPt-1To100/CRAB3/210907_183416/'
