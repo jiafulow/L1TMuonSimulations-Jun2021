@@ -64,22 +64,6 @@ def wrap_phi_deg(x):
   x = x - np.round(x / twopi) * twopi
   return x
 
-def wrap_theta_rad(x):
-  # returns theta in [0,pi/2] rad
-  halfpi = np.pi / 2
-  x = wrap_phi_rad(x)
-  x = np.abs(x)
-  x = np.where(x >= halfpi, np.pi - x, x)
-  return x
-
-def wrap_theta_deg(x):
-  # returns theta in [0,90] deg
-  halfpi = 90.
-  x = wrap_phi_deg(x)
-  x = np.abs(x)
-  x = np.where(x >= halfpi, 180. - x, x)
-  return x
-
 def delta_phi_rad(lhs, rhs):
   x = wrap_phi_rad(lhs - rhs)
   return x
@@ -88,66 +72,72 @@ def delta_phi_deg(lhs, rhs):
   x = wrap_phi_deg(lhs - rhs)
   return x
 
+def calc_eta_from_theta_rad(theta_rad):
+  eta = -1. * np.log(np.tan(theta_rad / 2.))
+  return eta
+
+def calc_eta_from_theta_deg(theta_deg):
+  eta = calc_eta_from_theta_rad(np.deg2rad(theta_deg))
+  return eta
+
+def calc_theta_rad_from_eta(eta):
+  theta = np.arctan2(1.0, np.sinh(eta))  # cot(theta) = sinh(eta)
+  return theta
+
+def calc_theta_deg_from_eta(eta):
+  theta = np.rad2deg(calc_theta_rad_from_eta(eta))
+  return theta
+
+def calc_theta_deg_from_int(theta_int):
+  theta = float(theta_int) * (45.0 - 8.5) / 128. + 8.5
+  return theta
+
+def calc_theta_rad_from_int(theta_int):
+  theta = np.deg2rad(calc_theta_deg_from_int(theta_int))
+  return theta
+
+def calc_theta_int(theta, endcap):
+  # theta in deg [0..180], endcap [-1, +1]
+  theta = 180. - theta if (endcap == -1) else theta
+  theta = (theta - 8.5) * 128. / (45.0 - 8.5)
+  theta_int = int(round(theta))
+  theta_int = 1 if (theta_int <= 0) else theta_int  # protect against invalid value
+  return theta_int
+
+def calc_phi_glob_deg_from_loc(loc, sector):
+  # loc in deg, sector [1..6]
+  glob = loc + 15. + (60. * (sector-1))
+  if glob >= 180.:
+    glob -= 360.
+  return glob
+
+def calc_phi_glob_rad_from_loc(loc, sector):
+  # loc in rad, sector [1..6]
+  glob = np.deg2rad(calc_phi_glob_deg_from_loc(np.rad2deg(loc), sector))
+  return glob
+
+def calc_phi_loc_deg_from_int(phi_int):
+  loc = float(phi_int) / 60. - 22.
+  return loc
+
+def calc_phi_loc_rad_from_int(phi_int):
+  loc = np.deg2rad(calc_phi_loc_deg_from_int(phi_int))
+  return loc
+
 def calc_phi_loc_deg_from_glob(glob, sector):
-  # glob in deg, sector [1-6]
+  # glob in deg [-180..180], sector [1..6]
   glob = wrap_phi_deg(glob)
   loc = glob - 15. - (60. * (sector-1))
   return loc
 
-def calc_phi_loc_int(glob, sector):
-  # glob in deg, sector [1-6]
+def calc_phi_int(glob, sector):
+  # glob in deg [-180..180], sector [1..6]
   loc = calc_phi_loc_deg_from_glob(glob, sector)
   if (loc + 22.) < 0.:
     loc += 360.
   loc = (loc + 22.) * 60.
   phi_int = int(round(loc))
   return phi_int
-
-def calc_phi_loc_deg(bits):
-  # bits is an integer
-  loc = float(bits) / 60. - 22.
-  return loc
-
-def calc_phi_glob_deg(loc, sector):
-  # loc in deg, sector [1-6]
-  glob = loc + 15. + (60. * (sector-1))
-  if glob >= 180.:
-    glob -= 360.
-  return glob
-
-def calc_theta_int(theta, endcap):
-  # theta in deg, endcap [-1,+1]
-  if endcap == -1:
-    theta = 180. - theta
-  theta = (theta - 8.5) * 128. / (45.0-8.5)
-  theta_int = int(round(theta))
-  return theta_int
-
-def calc_theta_rad_from_eta(eta):
-  # returns theta in [0,pi] rad
-  theta = np.arctan2(1.0, np.sinh(eta))
-  return theta
-
-def calc_theta_deg_from_eta(eta):
-  # returns theta in [0,180] deg
-  return np.rad2deg(calc_theta_rad_from_eta(eta))
-
-def calc_theta_deg_from_int(theta_int):
-  theta_deg = float(theta_int) * (45.0-8.5) / 128. + 8.5
-  return theta_deg
-
-def calc_eta_from_theta_rad(theta_rad):
-  eta = -1. * np.log(np.tan(theta_rad/2.))
-  return eta
-
-def calc_eta_from_theta_deg(theta_deg, endcap):
-  # theta in deg, endcap [-1,+1]
-  theta_deg = wrap_theta_deg(theta_deg)
-  theta_rad = np.deg2rad(theta_deg)
-  eta = calc_eta_from_theta_rad(theta_rad)
-  if endcap == -1:
-    eta = -eta
-  return eta
 
 def calc_ns_from_mhz(mhz):
   return 1e3 / mhz
@@ -344,9 +334,7 @@ def nan_to_num(a, num=0.0, copy=True):
   return a
 
 def save_np_arrays(outfile, outdict):
-  from numpy.compat import contextlib_nullcontext
-  with contextlib_nullcontext(outfile) as f:
-    np.savez_compressed(f, **outdict)
+  np.savez_compressed(outfile, **outdict)
 
 def stack_np_arrays(lst):
   adict = {}

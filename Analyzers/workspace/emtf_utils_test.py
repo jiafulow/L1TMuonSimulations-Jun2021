@@ -46,58 +46,6 @@ def test_wrap_phi_deg():
   input_range = 1.0*(np.arange(-180-720,-180-360)) + 1e-5
   assert list(wrap_phi_deg(input_range)) == pytest.approx(list(output_range))
 
-def test_wrap_theta_rad():
-  input_range = np.deg2rad(np.arange(0,90)) + 1e-5
-  output_range = np.deg2rad(np.arange(0,90)) + 1e-5
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(90,180) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(-180,-90)) + 1e-5
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(-90,0) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(180,270)) + 1e-5
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(270,360) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-  input_range = np.deg2rad(np.arange(360,90+360)) + 1e-5
-  assert list(wrap_theta_rad(input_range)) == pytest.approx(list(output_range))
-
-def test_wrap_theta_deg():
-  input_range = 1.0*(np.arange(0,90)) + 1e-5
-  output_range = 1.0*(np.arange(0,90)) + 1e-5
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(90,180) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(-180,-90)) + 1e-5
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(-90,0) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(180,270)) + 1e-5
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(270,360) + 1) - 1e-5
-  input_range = input_range[::-1]
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
-  input_range = 1.0*(np.arange(360,90+360)) + 1e-5
-  assert list(wrap_theta_deg(input_range)) == pytest.approx(list(output_range))
-
 def test_get_trigger_sector():
   sectors_me21 = [6, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6]
   sectors_me22 = [6, 6, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6,]
@@ -176,6 +124,34 @@ def test_get_trigger_cscid():
   assert [get_trigger_cscid(ring, station, chamber) for chamber in np.arange(1,18+1)] == cscids_me21
   station, ring = 4, 2
   assert [get_trigger_cscid(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscids_me22
+
+def test_get_trigger_cscfr():
+  cscfrs_me13 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,]
+  cscfrs_me21 = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,]
+  cscfrs_me22 = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,]
+  cscfrs_me31 = [(1 - x) for x in cscfrs_me21]
+  cscfrs_me32 = [(1 - x) for x in cscfrs_me22]
+
+  station, ring = 1, 1
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me22
+  station, ring = 1, 2
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me22
+  station, ring = 1, 3
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me13
+  station, ring = 1, 4
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me22
+  station, ring = 2, 1
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,18+1)] == cscfrs_me21
+  station, ring = 2, 2
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me22
+  station, ring = 3, 1
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,18+1)] == cscfrs_me31
+  station, ring = 3, 2
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me32
+  station, ring = 4, 1
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,18+1)] == cscfrs_me31
+  station, ring = 4, 2
+  assert [get_trigger_cscfr(ring, station, chamber) for chamber in np.arange(1,36+1)] == cscfrs_me32
 
 def test_get_trigger_neighid():
   neighids_me1 = [0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,]
