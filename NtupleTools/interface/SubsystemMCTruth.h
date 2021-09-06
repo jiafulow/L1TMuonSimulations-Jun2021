@@ -94,7 +94,7 @@ namespace emtf {
       void initEvent(const edm::Event& iEvent, const edm::EventSetup& iSetup);
 
       // Build sim track -> tracking particle links
-      void buildTrackingParticleLinks(const TrackingParticleCollection& trkPartColl);
+      void build(const TrackingParticleCollection& trkPartColl);
 
       // Find the matching tracking particle and return its index
       std::pair<int, int> findTrackingParticle(const EMTFHit& hit, const TrackingParticleCollection& trkPartColl) const;

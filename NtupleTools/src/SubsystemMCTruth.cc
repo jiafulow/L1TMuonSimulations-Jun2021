@@ -173,7 +173,7 @@ void SubsystemMCTruth::initEvent(const edm::Event& iEvent, const edm::EventSetup
   me0Geom_ = me0Geom_handle.product();
 }
 
-void SubsystemMCTruth::buildTrackingParticleLinks(const TrackingParticleCollection& trkPartColl) {
+void SubsystemMCTruth::build(const TrackingParticleCollection& trkPartColl) {
   trackingParticleLinks_.clear();
 
   for (auto it_trkpart = trkPartColl.begin(); it_trkpart != trkPartColl.end(); ++it_trkpart) {
@@ -213,6 +213,7 @@ std::pair<int, int> SubsystemMCTruth::findTrackingParticle(const EMTFHit& hit,
 int SubsystemMCTruth::findTrackingParticleCSCStrip(const EMTFHit& hit,
                                                    const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  int min_delta = 999999;
 
   int strip0 = hit.strip();
   int strip1 = (strip0 - 1) / 2 + 1;  // different convention used in CSC StripDigiSimLink (fullstrip)
@@ -220,7 +221,7 @@ int SubsystemMCTruth::findTrackingParticleCSCStrip(const EMTFHit& hit,
   // Check all 6 CSC layers
   for (unsigned ilayer = 0; ilayer < 6; ++ilayer) {
     const CSCDetId detid0(hit.rawDetId());
-    const CSCDetId detid1(detid0.endcap(), detid0.station(), detid0.ring(), detid0.chamber(), ilayer + 1);
+    const CSCDetId detid1(detid0.endcap(), detid0.station(), hit.ring(), detid0.chamber(), ilayer + 1);  // correct ring
 
     StripDigiSimLinks::const_iterator cscStripLayerLinks = cscStripSimLinks_->find(detid1);
     if (cscStripLayerLinks != cscStripSimLinks_->end()) {
@@ -233,7 +234,13 @@ int SubsystemMCTruth::findTrackingParticleCSCStrip(const EMTFHit& hit,
         EncodedEventId eventId = linkItr->eventId();
         float fraction = linkItr->fraction();
 
-        if (std::abs(strip1 - static_cast<int>(channel)) <= 3) {  // allow +/-3
+        int delta = std::abs(strip1 - static_cast<int>(channel));
+        if (min_delta >= delta) {
+          min_delta = delta;
+        }
+
+        // Allow delta of +/-3
+        if (delta <= 3) {
           SimHitIdpr matchId(simTrackId, eventId);
           if (matches.find(matchId) == matches.end())
             matches[matchId] = 0.;
@@ -242,12 +249,18 @@ int SubsystemMCTruth::findTrackingParticleCSCStrip(const EMTFHit& hit,
       }
     }
   }
+
+  //// Debug
+  //if (matches.empty()) {
+  //  std::cout << "CSC strip1: " << strip1 << " min_delta: " << min_delta << std::endl;
+  //}
   return findTrackingParticleFromMatches(matches, trkPartColl);
 }
 
 int SubsystemMCTruth::findTrackingParticleCSCWire(const EMTFHit& hit,
                                                   const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  int min_delta = 999999;
 
   int wire0 = hit.wire1();
   int wire1 = (wire0 + 100) + 1;  // different convention used in CSC StripDigiSimLink
@@ -255,7 +268,7 @@ int SubsystemMCTruth::findTrackingParticleCSCWire(const EMTFHit& hit,
   // Check all 6 CSC layers
   for (unsigned ilayer = 0; ilayer < 6; ++ilayer) {
     const CSCDetId detid0(hit.rawDetId());
-    const CSCDetId detid1(detid0.endcap(), detid0.station(), detid0.ring(), detid0.chamber(), ilayer + 1);
+    const CSCDetId detid1(detid0.endcap(), detid0.station(), hit.ring(), detid0.chamber(), ilayer + 1);  // correct ring
 
     WireDigiSimLinks::const_iterator cscWireLayerLinks = cscWireSimLinks_->find(detid1);
     if (cscWireLayerLinks != cscWireSimLinks_->end()) {
@@ -268,7 +281,13 @@ int SubsystemMCTruth::findTrackingParticleCSCWire(const EMTFHit& hit,
         EncodedEventId eventId = linkItr->eventId();
         float fraction = linkItr->fraction();
 
-        if (std::abs(wire1 - static_cast<int>(channel)) <= 3) {  // allow +/-3
+        int delta = std::abs(wire1 - static_cast<int>(channel));
+        if (min_delta >= delta) {
+          min_delta = delta;
+        }
+
+        // Allow delta of +/-4
+        if (delta <= 4) {
           SimHitIdpr matchId(simTrackId, eventId);
           if (matches.find(matchId) == matches.end())
             matches[matchId] = 0.;
@@ -277,11 +296,17 @@ int SubsystemMCTruth::findTrackingParticleCSCWire(const EMTFHit& hit,
       }
     }
   }
+
+  //// Debug
+  //if (matches.empty()) {
+  //  std::cout << "CSC wire1: " << wire1 << " min_delta: " << min_delta << std::endl;
+  //}
   return findTrackingParticleFromMatches(matches, trkPartColl);
 }
 
 int SubsystemMCTruth::findTrackingParticleRPC(const EMTFHit& hit, const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  int min_delta = 999999;
 
   // Check all strips in the RPC cluster
   const RPCDetId detid(hit.rawDetId());
@@ -301,7 +326,11 @@ int SubsystemMCTruth::findTrackingParticleRPC(const EMTFHit& hit, const Tracking
       EncodedEventId eventId = linkItr->getEventId();
 
       for (int strip0 = stripA; strip0 < stripB + 1; ++strip0) {
-        if ((std::abs(strip0 - static_cast<int>(simStrip)) <= 1) && (std::abs(bx - static_cast<int>(simBX)) <= 1)) {  // allow +/-1
+        int deltaBX = std::abs(bx - static_cast<int>(simBX));
+        int delta = std::abs(strip0 - static_cast<int>(simStrip));
+
+        // Allow delta of +/-1
+        if ((deltaBX <= 1) && (delta <= 1)) {
           SimHitIdpr matchId(simTrackId, eventId);
           if (matches.find(matchId) == matches.end())
             matches[matchId] = 0.;
@@ -323,7 +352,14 @@ int SubsystemMCTruth::findTrackingParticleRPC(const EMTFHit& hit, const Tracking
 
       if (detUnitId == detid.rawId()) {
         for (int strip0 = stripA; strip0 < stripB + 1; ++strip0) {
-          if ((std::abs(strip0 - static_cast<int>(simStrip)) <= 1) && (std::abs(bx - static_cast<int>(simBX)) <= 1)) {  // allow +/-1
+          int deltaBX = std::abs(bx - static_cast<int>(simBX));
+          int delta = std::abs(strip0 - static_cast<int>(simStrip));
+          if (min_delta >= delta) {
+            min_delta = delta;
+          }
+
+          // Allow delta of +/-1
+          if ((deltaBX <= 1) && (delta <= 1)) {
             SimHitIdpr matchId(simTrackId, eventId);
             if (matches.find(matchId) == matches.end())
               matches[matchId] = 0.;
@@ -343,11 +379,16 @@ int SubsystemMCTruth::findTrackingParticleRPC(const EMTFHit& hit, const Tracking
   }
 #endif
 
+  //// Debug
+  //if (matches.empty()) {
+  //  std::cout << "RPC stripA: " << stripA << " stripB: " << stripB << " min_delta: " << min_delta << std::endl;
+  //}
   return findTrackingParticleFromMatches(matches, trkPartColl);
 }
 
 int SubsystemMCTruth::findTrackingParticleGEM(const EMTFHit& hit, const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  int min_delta = 999999;
 
   // Check all strips in the GEM cluster
   int stripA = hit.stripLo();
@@ -369,11 +410,18 @@ int SubsystemMCTruth::findTrackingParticleGEM(const EMTFHit& hit, const Tracking
         unsigned int simTrackId = linkItr->getTrackId();
         EncodedEventId eventId = linkItr->getEventId();
 
-        //int simPad = 1 + static_cast<int>(p->padOfStrip(simStrip));
+        // Maybe different for GE1/1 vs GE2/1?
         unsigned int simPad = (hit.station() == 1) ? ((simStrip + 1) / 2) : ((simStrip + 1) / 2);
 
         for (int strip0 = stripA; strip0 < stripB + 1; ++strip0) {
-          if ((std::abs(strip0 - static_cast<int>(simPad)) <= 3) && (std::abs(bx - static_cast<int>(simBX)) <= 1)) {  // allow +/-3
+          int deltaBX = std::abs(bx - static_cast<int>(simBX));
+          int delta = std::abs(strip0 - static_cast<int>(simPad));
+          if (min_delta >= delta) {
+            min_delta = delta;
+          }
+
+          // Allow delta of +/-3
+          if ((deltaBX <= 1) && (delta <= 3)) {
             SimHitIdpr matchId(simTrackId, eventId);
             if (matches.find(matchId) == matches.end())
               matches[matchId] = 0.;
@@ -391,11 +439,17 @@ int SubsystemMCTruth::findTrackingParticleGEM(const EMTFHit& hit, const Tracking
       }
     }
   }
+
+  //// Debug
+  //if (matches.empty()) {
+  //  std::cout << "GEM stripA: " << stripA << " stripB: " << stripB << " min_delta: " << min_delta << std::endl;
+  //}
   return findTrackingParticleFromMatches(matches, trkPartColl);
 }
 
 int SubsystemMCTruth::findTrackingParticleME0(const EMTFHit& hit, const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  int min_delta = 999999;
 
   int strip0 = hit.strip();  // in half-strip unit
   int strip1 = (strip0 >> 1);
@@ -421,7 +475,14 @@ int SubsystemMCTruth::findTrackingParticleME0(const EMTFHit& hit, const Tracking
           unsigned int simTrackId = linkItr->getTrackId();
           EncodedEventId eventId = linkItr->getEventId();
 
-          if ((std::abs(strip1 - static_cast<int>(simStrip)) <= 3) && (std::abs(bx - static_cast<int>(simBX)) <= 1)) {  // allow +/-3
+          int deltaBX = std::abs(bx - static_cast<int>(simBX));
+          int delta = std::abs(strip1 - static_cast<int>(simStrip));
+          if (min_delta >= delta) {
+            min_delta = delta;
+          }
+
+          // Allow delta of +/-3
+          if ((deltaBX <= 1) && (delta <= 3)) {
             SimHitIdpr matchId(simTrackId, eventId);
             if (matches.find(matchId) == matches.end())
               matches[matchId] = 0.;
@@ -431,11 +492,17 @@ int SubsystemMCTruth::findTrackingParticleME0(const EMTFHit& hit, const Tracking
       }
     }
   }
+
+  //// Debug
+  //if (matches.empty()) {
+  //  std::cout << "ME0 strip1: " << strip1 << " min_delta: " << min_delta << std::endl;
+  //}
   return findTrackingParticleFromMatches(matches, trkPartColl);
 }
 
 int SubsystemMCTruth::findTrackingParticleDT(const EMTFHit& hit, const TrackingParticleCollection& trkPartColl) const {
   std::map<SimHitIdpr, float> matches;
+  //int min_delta = 999999;
 
   DTChamberId detid(hit.rawDetId());
   int bx = hit.bx();
@@ -510,7 +577,8 @@ SubsystemMCTruth::SimHitInfoCollection SubsystemMCTruth::findSimHits() const {
     int subsystem = L1TMuon::kCSC;
     int endcap = (detid.endcap() == 2) ? -1 : detid.endcap();
     int sim_tp = findTrackingParticleFromPSimHit(pSimHit);
-    SimHitInfo out{pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid.chamber(), detid.layer(), sim_tp};
+    SimHitInfo out{
+        pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid.chamber(), detid.layer(), sim_tp};
     return out;
   });
 
@@ -544,7 +612,8 @@ SubsystemMCTruth::SimHitInfoCollection SubsystemMCTruth::findSimHits() const {
         const bool is_irpc = ((not is_barrel) and (detid.station() >= 3) and (detid.ring() == 1));
         const int detid_chamber = ((detid.sector() - 1) * (is_irpc ? 3 : 6)) + detid.subsector();
 
-        SimHitInfo out{pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid_chamber, detid.layer(), sim_tp};
+        SimHitInfo out{
+            pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid_chamber, detid.layer(), sim_tp};
         return out;
       });
 
@@ -558,7 +627,8 @@ SubsystemMCTruth::SimHitInfoCollection SubsystemMCTruth::findSimHits() const {
     int subsystem = L1TMuon::kGEM;
     int endcap = detid.region();
     int sim_tp = findTrackingParticleFromPSimHit(pSimHit);
-    SimHitInfo out{pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid.chamber(), detid.layer(), sim_tp};
+    SimHitInfo out{
+        pSimHit, lp, gp, subsystem, endcap, detid.station(), detid.ring(), detid.chamber(), detid.layer(), sim_tp};
     return out;
   });
 
