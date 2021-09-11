@@ -102,7 +102,7 @@ class ChamberCouncil(object):
       ind = 0
       if len(tmp_hits) > 1:
         phi_median = np.median([hit.phi for hit in tmp_hits])
-        ind = np.argmin(np.abs(hit.phi - phi_median))
+        ind = np.argmin(np.abs([(hit.phi - phi_median) for hit in tmp_hits]))
 
       hit = tmp_hits[ind]
       hit_info = get_hit_info(hit)
@@ -118,7 +118,7 @@ class ChamberCouncil(object):
     for k in sorted_keys:
       tmp_hits = self.chambers[k]
 
-      # Quick truncation
+      # Apply truncation based on subsystem type
       _len = 2
       if tmp_hits[0].subsystem == kCSC:
         _len = 2
@@ -130,9 +130,10 @@ class ChamberCouncil(object):
       elif tmp_hits[0].subsystem == kGEM:
         _len = 8
       elif tmp_hits[0].subsystem == kME0:
-        _len = 25
+        _len = 24
 
-      for _, hit in zip(range(_len), tmp_hits):
+      _len = min(_len, len(tmp_hits))
+      for hit in tmp_hits[:_len]:
         hit_info = get_hit_info(hit)
         hits_info.append(hit_info)
 
@@ -209,7 +210,8 @@ class SignalAnalysis(_BaseAnalysis):
 
   @classmethod
   def worker_fn(cls, signal, task_queue, done_queue):
-    tree = load_tree(task_queue, use_multiprocessing=True)
+    tree = load_tree(task_queue, load_hits=True, load_simhits=True, load_tracks=True,
+                     load_particles=True, use_multiprocessing=True)
 
     if signal == 'prompt':
       unconstrained = 0
@@ -277,7 +279,7 @@ class SignalAnalysis(_BaseAnalysis):
         simhit.emtf_host = find_emtf_host(simhit.subsystem, simhit.station, simhit.ring)
         simhit.emtf_chamber = find_emtf_chamber(
             simhit.subsystem, simhit.station, simhit.cscid, simhit.subsector, simhit.neighbor)
-        simhit.emtf_phi = calc_phi_loc_int(simhit.phi, (best_sector % 6) + 1)
+        simhit.emtf_phi = calc_phi_int(simhit.phi, (best_sector % 6) + 1)
         simhit.emtf_theta1 = calc_theta_int(simhit.theta, 1 if best_sector < 6 else -1)
         simhit.zones = find_emtf_zones(simhit.emtf_host, simhit.emtf_theta1)
         simhit.timezones = find_emtf_timezones(simhit.emtf_host, simhit.bx)
@@ -347,8 +349,8 @@ class SignalAnalysis(_BaseAnalysis):
             ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
         # Particles
         ipart = 0
-        print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f}'.format(
-            ipart, part.pt, part.eta, part.phi, part.invpt, part.d0))
+        print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f}'.format(
+            ipart, part.pt, part.eta, part.phi, part.invpt, part.d0, part.vz))
         # Sim hits
         for isimhit, simhit in enumerate(evt.simhits):
           simhit_id = (simhit.subsystem, simhit.station, simhit.ring, get_trigger_endsec(simhit.endcap, simhit.sector),
@@ -401,15 +403,12 @@ class SignalAnalysis(_BaseAnalysis):
   def union_fn(cls, num_workers, done_queue):
     outdict = [done_queue.get() for _ in range(num_workers)]
     outdict = stack_np_arrays(outdict)
-    if use_condor:
-      outfile = '{0}_{1}.npz'.format(analysis, jobid)
-    else:
-      outfile = '{0}.npz'.format(analysis)
+    outfile = '{}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
     return
 
   @classmethod
-  def multiprocessing_fn(cls, signal='prompt', num_workers=8, num_files=None):
+  def multiprocessing_fn(cls, signal, num_workers=8, num_files=None):
     if num_workers > cpu_count():
       num_workers = cpu_count()
 
@@ -418,7 +417,7 @@ class SignalAnalysis(_BaseAnalysis):
     elif signal == 'displaced':
       dataset = SingleMuonDisplaced()
     else:
-      raise ValueError('Unexpected signal: {0}'.format(signal))
+      raise ValueError('Unexpected signal: {}'.format(signal))
 
     if num_files is None:
       infiles = dataset[:]
@@ -448,8 +447,117 @@ class BkgndAnalysis(_BaseAnalysis):
   Description.
   """
 
+  @classmethod
+  def worker_fn(cls, bkgnd, task_queue, done_queue):
+    tree = load_tree(task_queue, load_hits=True, load_particles=True, use_multiprocessing=True)
+
+    out_aux = []
+    out_hits = []
+
+    sector_chambers = [ChamberCouncil() for sector in range(num_emtf_sectors)]
+
+    # Loop over events
+    for ievt, evt in enumerate(tree):
+      # First, apply event veto
+      sim_tp_list = {hit.sim_tp1 for hit in evt.hits if hit.bx == 0}
+      sim_tp_list |= {hit.sim_tp2 for hit in evt.hits if hit.bx == 0}
+      sim_tp_list -= {-1}
+      veto_pred = lambda ipart: evt.particles[ipart].pt > 14.  # select part pt > 14
+      veto = any(veto_pred(ipart) for ipart in sim_tp_list)
+      if veto:
+        continue
+
+      # Second, fill the chambers with trigger primitives
+
+      # Trigger primitives
+      for ihit, hit in enumerate(evt.hits):
+        if hit.bx == 0:
+          sector = get_trigger_endsec(hit.endcap, hit.sector)
+          sector_chambers[sector].add(hit)
+
+      # Finally, add to output collections
+      for sector in range(num_emtf_sectors):
+        ievt_aux = np.array([ievt, sector], dtype=np.int32)
+        ievt_hits = sector_chambers[sector].get_hits()
+        out_aux.append(ievt_aux)
+        out_hits.append(ievt_hits)
+
+      # Reset before the next event
+      for sector in range(num_emtf_sectors):
+        sector_chambers[sector].reset()
+
+      # Debug
+      if verbosity >= 2 and ievt < 100:
+        # Event
+        print('evt {0} has {1} particles and {2} hits'.format(
+            ievt, len(evt.particles), len(evt.hits)))
+        # Particles
+        for ipart in sim_tp_list:
+          part = evt.particles[ipart]
+          print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f}'.format(
+              ipart, part.pt, part.eta, part.phi, part.invpt, part.d0, part.vz))
+        # Trigger primitives
+        for ihit, hit in enumerate(evt.hits):
+          hit_id = (hit.subsystem, hit.station, hit.ring, get_trigger_endsec(hit.endcap, hit.sector),
+                    get_trigger_cscneighid(hit.station, hit.subsector, hit.cscid, hit.neighbor), hit.gemdl, hit.bx)
+          hit_sim_tp = hit.sim_tp1
+          if (hit.subsystem == kCSC) and (hit_sim_tp != hit.sim_tp2):
+            hit_sim_tp = -1
+          print('.. hit {0} {1} {2} {3} {4} {5} {6} {7}'.format(
+              ihit, hit_id, hit.emtf_phi, hit.emtf_bend, hit.emtf_theta1, hit.emtf_theta2, hit.emtf_qual1, hit_sim_tp))
+        # Output
+        with np.printoptions(linewidth=140, threshold=1000):
+          for sector in range(num_emtf_sectors):
+            print('sector {0} hits:'.format(sector))
+            print(out_hits[-num_emtf_sectors + sector])
+
+    # End loop over events
+
+    # __________________________________________________________________________
+    # Output
+    out_aux = np.asarray(out_aux)
+    out_hits = create_ragged_array(out_hits)
+    outdict = {
+      'out_aux': out_aux,
+      'out_hits_values': out_hits.values,
+      'out_hits_row_splits': out_hits.row_splits,
+    }
+    done_queue.put(outdict)
+    return
+
+  @classmethod
+  def union_fn(cls, num_workers, done_queue):
+    outdict = [done_queue.get() for _ in range(num_workers)]
+    outdict = stack_np_arrays(outdict)
+    outfile = '{}.npz'.format(analysis)
+    save_np_arrays(outfile, outdict)
+    return
+
+  @classmethod
+  def multiprocessing_fn(cls, bkgnd, num_workers=8, num_files=None):
+    if num_workers > cpu_count():
+      num_workers = cpu_count()
+
+    dataset = SingleNeutrinoPU200()
+    if num_files is None:
+      infiles = dataset[:]
+    else:
+      infiles = dataset[:num_files]
+    task_queue = Queue()
+    done_queue = Queue()
+    sentinels = []
+
+    for _ in range(num_workers):
+      Process(target=cls.worker_fn, args=(bkgnd, task_queue, done_queue)).start()
+      sentinels.append(None)
+    for infile in infiles + sentinels:
+      task_queue.put(infile)
+    result = cls.union_fn(num_workers, done_queue)
+    return result
+
   def run(self, bkgnd='minbias'):
-    pass
+    self.multiprocessing_fn(bkgnd=bkgnd)
+    return
 
 
 # ______________________________________________________________________________
@@ -472,7 +580,7 @@ analysis = 'signal'
 jobid = 0
 
 # Max num of events (-1 means all events)
-maxevents = 100
+maxevents = 200000
 
 # Verbosity (0 means quiet)
 verbosity = 1
