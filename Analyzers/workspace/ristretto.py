@@ -10,18 +10,8 @@ from multiprocessing import Process, Queue, cpu_count
 
 from emtf_algos import *
 from emtf_ntuples import *
-
-try:
-  import third_party.emtf_tree as emtf_tree
-except ImportError:
-  raise ImportError(
-      'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
-
-try:
-  import third_party.emtf_nnet as emtf_nnet
-except ImportError:
-  raise ImportError(
-      'Could not import third_party.emtf_nnet. Please run get-third-party.sh first.')
+from emtf_tree import get_logger
+from create_ragged_array import create_ragged_array
 
 
 class _BaseAnalysis(object):
@@ -394,8 +384,8 @@ class SignalAnalysis(_BaseAnalysis):
     # Output
     out_part = np.asarray(out_part)
     out_track = np.asarray(out_track)
-    out_hits = emtf_nnet.ragged.create_ragged_array(out_hits)
-    out_simhits = emtf_nnet.ragged.create_ragged_array(out_simhits)
+    out_hits = create_ragged_array(out_hits)
+    out_simhits = create_ragged_array(out_simhits)
     outdict = {
       'out_part': out_part,
       'out_track': out_track,
@@ -504,7 +494,7 @@ if use_condor:
 use_slurm = ('SLURM_JOB_ID' in os.environ)
 
 # Logger
-logger = emtf_tree.get_logger()
+logger = get_logger()
 
 
 # Decorator

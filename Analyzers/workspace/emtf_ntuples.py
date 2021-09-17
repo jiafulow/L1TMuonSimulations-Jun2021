@@ -27,7 +27,7 @@ def load_tree(infiles,
               load_tttracks=False,
               load_particles=True,
               use_multiprocessing=False):
-  from third_party.emtf_tree import TreeChain, TreeQueue
+  from emtf_tree import TreeChain, TreeQueue
 
   my_collections = []  # used for tree.define_collection()
   my_branches = []  # used for tree.activate()

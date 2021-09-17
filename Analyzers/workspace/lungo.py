@@ -8,12 +8,7 @@ import numpy as np
 
 from emtf_algos import *
 from emtf_ntuples import *
-
-try:
-  import third_party.emtf_tree as emtf_tree
-except ImportError:
-  raise ImportError(
-      'Could not import third_party.emtf_tree. Please run get-third-party.sh first.')
+from emtf_tree import get_logger
 
 
 class _BaseAnalysis(object):
@@ -352,7 +347,7 @@ if use_condor:
 use_slurm = ('SLURM_JOB_ID' in os.environ)
 
 # Logger
-logger = emtf_tree.get_logger()
+logger = get_logger()
 
 
 # Decorator
