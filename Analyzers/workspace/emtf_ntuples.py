@@ -83,7 +83,7 @@ def load_tree(infiles,
 
 
 def load_pgun_test():
-  infile = '../test/ntuple_SingleMuon_Endcap_Phase2HLTTDRSummer20.210808.root'
+  infile = '../test/ntuple_SingleMuon_Endcap_Phase2HLTTDRSummer20.210922.root'
   return load_tree(infile, load_hits=True, load_simhits=True, load_tracks=True,
                    load_particles=True)
 
@@ -152,8 +152,8 @@ class _BaseDataset(object):
 
 class SingleMuon(_BaseDataset):
   SIZE = 2000
-  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184102/'
-  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210808_184117/'
+  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210922_194420/'
+  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/210922_194440/'
 
   def getitem(self, index):
     if index % 2 == 0:
@@ -169,10 +169,29 @@ class SingleMuonDisplaced(_BaseDataset):
 
 
 class SingleNeutrinoPU200(_BaseDataset):
-  SIZE = 189
-  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/210831_011325/'
+  SIZE = 56 - 2
+  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_ext1_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/210921_154251/'
+
+  def getitem(self, index):
+    indexer = np.arange(self.SIZE, dtype=np.int32)
+    indexer[[32 - 1, 35 - 1]] = [56 - 2, 56 - 1]  # fill the holes left by failed jobs
+    return self._filename(self.PREFIX, self.FNAME, indexer[index])
 
 
 class DoubleMuonPU200(_BaseDataset):
   SIZE = 28
-  PREFIX = _EOS_PREFIX + 'DoubleMuon_PU200_Phase2HLTTDRSummer20/DoubleMuon_gun_FlatPt-1To100/CRAB3/210907_183416/'
+  PREFIX = _EOS_PREFIX + 'DoubleMuon_PU200_Phase2HLTTDRSummer20/DoubleMuon_gun_FlatPt-1To100/CRAB3/210921_145639/'
+
+
+class DoublePhotonPU200(_BaseDataset):
+  SIZE = 12 + 8
+  PREFIX_0 = _EOS_PREFIX + 'DoublePhoton_PU140_Phase2HLTTDRSummer20/DoublePhoton_FlatPt-1To100/CRAB3/210922_190214/'
+  PREFIX_1 = _EOS_PREFIX + 'DoublePhoton_PU200_ext2_Phase2HLTTDRSummer20/DoublePhoton_FlatPt-1To100/CRAB3/210922_190246/'
+
+  def getitem(self, index):
+    if index < 12:
+      prefix = self.PREFIX_0
+    else:
+      prefix = self.PREFIX_1
+    index = index % 12
+    return self._filename(prefix, self.FNAME, index)
