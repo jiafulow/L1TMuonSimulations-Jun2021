@@ -34,6 +34,17 @@ def find_sw_eta(trk):
   return calc_eta_from_theta_deg(calc_theta_deg_from_int(trk.model_eta)) * trk.endcap
 
 
+def adjust_model_qual(trk):
+  # Zone 2: emtf_theta >= 54 with ME1/2 or RE1/2 hit
+  is_in_zone2 = (trk.model_eta >= 54) and ((trk.hitmode & (1 << 1)) or (trk.hitmode & (1 << 5)))
+  # Promote Zone 2 tracks with emtf_mode_v2 >= 12 and model_qual >= 24 to model_qual >= 48
+  if is_in_zone2 and (trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 24):
+    model_qual = max(trk.model_qual, 48)
+  else:
+    model_qual = trk.model_qual
+  return model_qual
+
+
 def fill_highest_qual(tracks, select_fn, lst):
   highest = np.maximum.reduce(
       [trk.model_qual for trk in tracks if select_fn(trk)],
@@ -73,7 +84,8 @@ class RatesAnalysis(_BaseAnalysis):
 
   def run(self, pileup=200):
     # Load tree
-    infiles = ['../test/ntuple_SingleNeutrino_PU200_Phase2HLTTDRSummer20.210920.root']  #FIXME
+    dataset = SingleNeutrinoPU200()
+    infiles = dataset[:]
     tree = load_tree(infiles, load_tracks=True)
 
     rate_vs_qual = []
@@ -83,20 +95,20 @@ class RatesAnalysis(_BaseAnalysis):
     rate_vs_pt_3 = []
 
     rate_vs_qual_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.sw_pt >= 20.))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 20.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 0)))
     rate_vs_pt_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.model_qual >= 16))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 0.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     rate_vs_pt_sel_1 = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 1.6) and
-        (trk.model_qual >= 16))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 1.6) and (trk.sw_pt >= 0.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     rate_vs_pt_sel_2 = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.6 <= abs(trk.sw_eta) <= 2.0) and
-        (trk.model_qual >= 16))
+        (trk.valid != 0) and (1.6 <= abs(trk.sw_eta) <= 2.0) and (trk.sw_pt >= 0.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     rate_vs_pt_sel_3 = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (2.0 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.model_qual >= 16))
+        (trk.valid != 0) and (2.0 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 0.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
 
     # Loop over events
     for ievt, evt in enumerate(tree):
@@ -109,6 +121,7 @@ class RatesAnalysis(_BaseAnalysis):
         trk.sw_pt = find_sw_pt(trk)
         trk.sw_phi = find_sw_phi(trk)
         trk.sw_eta = find_sw_eta(trk)
+        trk.model_qual = adjust_model_qual(trk)
 
       # Fill
       fill_highest_qual(tracks, rate_vs_qual_sel, rate_vs_qual)
@@ -139,6 +152,7 @@ class RatesAnalysis(_BaseAnalysis):
     else:
       outfile = '{}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
+    logger.info('Wrote to {}'.format(outfile))
     return
 
 
@@ -151,13 +165,17 @@ class EffieAnalysis(_BaseAnalysis):
 
   def run(self, pileup=200):
     # Load tree
-    infiles = ['../test/ntuple_DoubleMuon_PU200_Phase2HLTTDRSummer20.210920.root']  #FIXME
+    dataset = DoubleMuonPU200()
+    infiles = dataset[:]
     tree = load_tree(infiles, load_tracks=True, load_particles=True)
 
     eff_vs_genpt_all = []
     eff_vs_genpt_l1pt5 = []
     eff_vs_genpt_l1pt10 = []
     eff_vs_genpt_l1pt20 = []
+    eff_vs_genpt_l1pt30 = []
+    eff_vs_genpt_l1pt40 = []
+    eff_vs_genpt_l1pt50 = []
 
     eff_vs_geneta_lowpt_all = []
     eff_vs_geneta_lowpt_l1pt5 = []
@@ -173,20 +191,29 @@ class EffieAnalysis(_BaseAnalysis):
         (part.bx == 0) and (part.pt >= 20.))
 
     eff_vs_genpt_l1pt5_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.model_qual >= 16) and (trk.sw_pt >= 5.))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 5.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     eff_vs_genpt_l1pt10_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.model_qual >= 16) and (trk.sw_pt >= 10.))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 10.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     eff_vs_genpt_l1pt20_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (1.2 <= abs(trk.sw_eta) <= 2.4) and
-        (trk.model_qual >= 16) and (trk.sw_pt >= 20.))
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 20.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
+    eff_vs_genpt_l1pt30_sel = lambda trk: (
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 30.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
+    eff_vs_genpt_l1pt40_sel = lambda trk: (
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 40.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
+    eff_vs_genpt_l1pt50_sel = lambda trk: (
+        (trk.valid != 0) and (1.2 <= abs(trk.sw_eta) <= 2.4) and (trk.sw_pt >= 50.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     eff_vs_geneta_lowpt_l1pt5_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (0. <= abs(trk.sw_eta) <= 3.) and
-        (trk.model_qual >= 16) and (trk.sw_pt >= 5.))
+        (trk.valid != 0) and (0. <= abs(trk.sw_eta) <= 3.) and (trk.sw_pt >= 5.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
     eff_vs_geneta_highpt_l1pt20_sel = lambda trk: (
-        (trk.valid != 0) and (trk.emtf_mode_v2 >= 12) and (0. <= abs(trk.sw_eta) <= 3.) and
-        (trk.model_qual >= 16) and (trk.sw_pt >= 20.))
+        (trk.valid != 0) and (0. <= abs(trk.sw_eta) <= 3.) and (trk.sw_pt >= 20.) and
+        ((trk.emtf_mode_v2 >= 12) and (trk.model_qual >= 48)))
 
     true_fn = lambda x: True
 
@@ -195,41 +222,50 @@ class EffieAnalysis(_BaseAnalysis):
       if maxevents != -1 and ievt == maxevents:
         break
 
+      # Expected particles in the DoubleMuon dataset
       if len(evt.particles) < 2:
         continue
 
-      particles = evt.particles
+      particles = evt.particles[:2]
       assert ((abs(particles[0].pdgid) == 13) and (particles[0].status == 1))
       assert ((abs(particles[1].pdgid) == 13) and (particles[1].status == 1))
-      part = particles[(ievt % 2)]  # pick first or second muon alternatively
-      part.endcap = 1 if (part.eta >= 0.) else -1
 
-      # Find sw_pt, sw_phi, sw_eta
-      tracks = list(filter(lambda trk: (trk.endcap * part.endcap) > 0, evt.tracks))
-      for trk in tracks:
-        trk.sw_pt = find_sw_pt(trk)
-        trk.sw_phi = find_sw_phi(trk)
-        trk.sw_eta = find_sw_eta(trk)
+      # Loop over particles
+      for part in particles:
+        endcap = 1 if (part.eta >= 0.) else -1
 
-      # Fill
-      fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, true_fn,
-                         eff_vs_genpt_all)
-      fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt5_sel,
-                         eff_vs_genpt_l1pt5)
-      fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt10_sel,
-                         eff_vs_genpt_l1pt10)
-      fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt20_sel,
-                         eff_vs_genpt_l1pt20)
+        # Find sw_pt, sw_phi, sw_eta
+        tracks = list(filter(lambda trk: (trk.endcap * endcap) > 0, evt.tracks))
+        for trk in tracks:
+          trk.sw_pt = find_sw_pt(trk)
+          trk.sw_phi = find_sw_phi(trk)
+          trk.sw_eta = find_sw_eta(trk)
+          trk.model_qual = adjust_model_qual(trk)
 
-      fill_efficiency_eta(part, tracks, eff_vs_geneta_lowpt_part_sel, true_fn,
-                          eff_vs_geneta_lowpt_all)
-      fill_efficiency_eta(part, tracks, eff_vs_geneta_lowpt_part_sel, eff_vs_geneta_lowpt_l1pt5_sel,
-                          eff_vs_geneta_lowpt_l1pt5)
+        # Fill
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, true_fn,
+                           eff_vs_genpt_all)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt5_sel,
+                           eff_vs_genpt_l1pt5)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt10_sel,
+                           eff_vs_genpt_l1pt10)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt20_sel,
+                           eff_vs_genpt_l1pt20)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt30_sel,
+                           eff_vs_genpt_l1pt30)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt40_sel,
+                           eff_vs_genpt_l1pt40)
+        fill_efficiency_pt(part, tracks, eff_vs_genpt_part_sel, eff_vs_genpt_l1pt50_sel,
+                           eff_vs_genpt_l1pt50)
 
-      fill_efficiency_eta(part, tracks, eff_vs_geneta_highpt_part_sel, true_fn,
-                          eff_vs_geneta_highpt_all)
-      fill_efficiency_eta(part, tracks, eff_vs_geneta_highpt_part_sel, eff_vs_geneta_highpt_l1pt20_sel,
-                          eff_vs_geneta_highpt_l1pt20)
+        fill_efficiency_eta(part, tracks, eff_vs_geneta_lowpt_part_sel, true_fn,
+                            eff_vs_geneta_lowpt_all)
+        fill_efficiency_eta(part, tracks, eff_vs_geneta_lowpt_part_sel, eff_vs_geneta_lowpt_l1pt5_sel,
+                            eff_vs_geneta_lowpt_l1pt5)
+        fill_efficiency_eta(part, tracks, eff_vs_geneta_highpt_part_sel, true_fn,
+                            eff_vs_geneta_highpt_all)
+        fill_efficiency_eta(part, tracks, eff_vs_geneta_highpt_part_sel, eff_vs_geneta_highpt_l1pt20_sel,
+                            eff_vs_geneta_highpt_l1pt20)
 
     # End loop over events
 
@@ -239,6 +275,9 @@ class EffieAnalysis(_BaseAnalysis):
     eff_vs_genpt_l1pt5 = np.asarray(eff_vs_genpt_l1pt5, dtype=np.float32)
     eff_vs_genpt_l1pt10 = np.asarray(eff_vs_genpt_l1pt10, dtype=np.float32)
     eff_vs_genpt_l1pt20 = np.asarray(eff_vs_genpt_l1pt20, dtype=np.float32)
+    eff_vs_genpt_l1pt30 = np.asarray(eff_vs_genpt_l1pt30, dtype=np.float32)
+    eff_vs_genpt_l1pt40 = np.asarray(eff_vs_genpt_l1pt40, dtype=np.float32)
+    eff_vs_genpt_l1pt50 = np.asarray(eff_vs_genpt_l1pt50, dtype=np.float32)
     eff_vs_geneta_lowpt_all = np.asarray(eff_vs_geneta_lowpt_all, dtype=np.float32)
     eff_vs_geneta_lowpt_l1pt5 = np.asarray(eff_vs_geneta_lowpt_l1pt5, dtype=np.float32)
     eff_vs_geneta_highpt_all = np.asarray(eff_vs_geneta_highpt_all, dtype=np.float32)
@@ -249,6 +288,9 @@ class EffieAnalysis(_BaseAnalysis):
       'eff_vs_genpt_l1pt5': eff_vs_genpt_l1pt5,
       'eff_vs_genpt_l1pt10': eff_vs_genpt_l1pt10,
       'eff_vs_genpt_l1pt20': eff_vs_genpt_l1pt20,
+      'eff_vs_genpt_l1pt30': eff_vs_genpt_l1pt30,
+      'eff_vs_genpt_l1pt40': eff_vs_genpt_l1pt40,
+      'eff_vs_genpt_l1pt50': eff_vs_genpt_l1pt50,
       'eff_vs_geneta_lowpt_all': eff_vs_geneta_lowpt_all,
       'eff_vs_geneta_lowpt_l1pt5': eff_vs_geneta_lowpt_l1pt5,
       'eff_vs_geneta_highpt_all': eff_vs_geneta_highpt_all,
@@ -259,6 +301,7 @@ class EffieAnalysis(_BaseAnalysis):
     else:
       outfile = '{}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
+    logger.info('Wrote to {}'.format(outfile))
     return
 
 

@@ -405,6 +405,7 @@ class SignalAnalysis(_BaseAnalysis):
     outdict = stack_np_arrays(outdict)
     outfile = '{}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
+    logger.info('Wrote to {}'.format(outfile))
     return
 
   @classmethod
@@ -531,6 +532,7 @@ class BkgndAnalysis(_BaseAnalysis):
     outdict = stack_np_arrays(outdict)
     outfile = '{}.npz'.format(analysis)
     save_np_arrays(outfile, outdict)
+    logger.info('Wrote to {}'.format(outfile))
     return
 
   @classmethod
@@ -538,7 +540,7 @@ class BkgndAnalysis(_BaseAnalysis):
     if num_workers > cpu_count():
       num_workers = cpu_count()
 
-    dataset = SingleNeutrinoPU200()
+    dataset = SingleNeutrinoPU200Ext1()
     if num_files is None:
       infiles = dataset[:]
     else:
