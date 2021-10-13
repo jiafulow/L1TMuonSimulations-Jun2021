@@ -139,15 +139,16 @@ class _BaseDataset(object):
         return True
     return False
 
-  def _filename(self, prefix, fname, i):
+  def _filename(self, prefix, fname, jobid):
     if not prefix or not fname:
       raise ValueError('Incorrect prefix or fname.')
     if not fname.endswith('.root'):
       raise ValueError('fname must be a .root file.')
-    return '{0}{1:04d}/{2}_{3}.root'.format(prefix, (i + 1) // 1000, fname[:-5], (i + 1))
+    return '{0}{1:04d}/{2}_{3}.root'.format(prefix, jobid // 1000, fname[:-5], jobid)
 
   def getitem(self, index):
-    return self._filename(self.PREFIX, self.FNAME, index)
+    jobid = index + 1
+    return self._filename(self.PREFIX, self.FNAME, jobid)
 
 
 class SingleMuon(_BaseDataset):
@@ -160,27 +161,48 @@ class SingleMuon(_BaseDataset):
       prefix = self.PREFIX_0
     else:
       prefix = self.PREFIX_1
-    index = index // 2
-    return self._filename(prefix, self.FNAME, index)
+    jobid = index // 2
+    jobid = jobid + 1
+    return self._filename(prefix, self.FNAME, jobid)
 
 
 class SingleMuonDisplaced(_BaseDataset):
   pass
 
 
+# Note:
+# - SingleNeutrinoPU200, DoubleMuonPU200 are used for testing
+# - SingleNeutrinoPU200Ext1 is used for training
+# - DoublePhotonPU200 is backup for training
+
 class SingleNeutrinoPU200(_BaseDataset):
-  SIZE = 56 - 2
-  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_ext1_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/210921_154251/'
+  SIZE = 126
+  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/211018_165741/'
+  JOBIDS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 79, 81, 82, 83, 84, 87, 88, 89, 90, 91, 92, 93, 94, 95, 97, 98, 99, 102, 103, 104, 106, 108, 109, 111, 112, 116, 117, 118, 119, 120, 121, 123, 126, 127, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,)
 
   def getitem(self, index):
-    indexer = np.arange(self.SIZE, dtype=np.int32)
-    indexer[[32 - 1, 35 - 1]] = [56 - 2, 56 - 1]  # fill the holes left by failed jobs
-    return self._filename(self.PREFIX, self.FNAME, indexer[index])
+    jobid = self.JOBIDS[index]
+    return self._filename(self.PREFIX, self.FNAME, jobid)
+
+
+class SingleNeutrinoPU200Ext1(_BaseDataset):
+  SIZE = 56 - 2
+  PREFIX = _EOS_PREFIX + 'SingleNeutrino_PU200_ext1_Phase2HLTTDRSummer20/MinBias_TuneCP5_14TeV-pythia8/CRAB3/210921_154251/'
+  JOBIDS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56)
+
+  def getitem(self, index):
+    jobid = self.JOBIDS[index]
+    return self._filename(self.PREFIX, self.FNAME, jobid)
 
 
 class DoubleMuonPU200(_BaseDataset):
-  SIZE = 28
-  PREFIX = _EOS_PREFIX + 'DoubleMuon_PU200_Phase2HLTTDRSummer20/DoubleMuon_gun_FlatPt-1To100/CRAB3/210921_145639/'
+  SIZE = 30
+  PREFIX = _EOS_PREFIX + 'DoubleMuon_PU200_Phase2HLTTDRSummer20/DoubleMuon_gun_FlatPt-1To100/CRAB3/211018_165725/'
+  JOBIDS = (1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31, 32, 33, 36, 38,)
+
+  def getitem(self, index):
+    jobid = self.JOBIDS[index]
+    return self._filename(self.PREFIX, self.FNAME, jobid)
 
 
 class DoublePhotonPU200(_BaseDataset):
@@ -191,7 +213,8 @@ class DoublePhotonPU200(_BaseDataset):
   def getitem(self, index):
     if index < 12:
       prefix = self.PREFIX_0
+      jobid = index + 1
     else:
       prefix = self.PREFIX_1
-    index = index % 12
-    return self._filename(prefix, self.FNAME, index)
+      jobid = index - 12 + 1
+    return self._filename(prefix, self.FNAME, jobid)
