@@ -189,6 +189,7 @@ protected:
   std::unique_ptr<std::vector<int16_t> >   vt_hitref9;         //
   std::unique_ptr<std::vector<int16_t> >   vt_hitrefA;         //
   std::unique_ptr<std::vector<int16_t> >   vt_hitrefB;         //
+  std::unique_ptr<std::vector<int16_t> >   vt_hitmode;         //
   std::unique_ptr<std::vector<int16_t> >   vt_nhits;           //
   std::unique_ptr<int32_t>                 vt_size;            //
 
@@ -378,6 +379,7 @@ void TreeMixin::initTree() {
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitref9)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitrefA)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_hitrefB)
+  MY_MAKE_UNIQUE_AND_BRANCH(vt_hitmode)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_nhits)
   MY_MAKE_UNIQUE_AND_BRANCH(vt_size)
 
@@ -558,6 +560,7 @@ void TreeMixin::fillTree() {
   MY_RESET_TO_ZERO(vt_hitref9)
   MY_RESET_TO_ZERO(vt_hitrefA)
   MY_RESET_TO_ZERO(vt_hitrefB)
+  MY_RESET_TO_ZERO(vt_hitmode)
   MY_RESET_TO_ZERO(vt_nhits)
   MY_RESET_TO_ZERO(vt_size)
 
@@ -877,6 +880,16 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
   // ___________________________________________________________________________
   // Tracks
   for (const auto& trk : emtf_tracks) {
+    auto get_hitmode_fn = [](const EMTFTrack& trk) -> int {
+      int n = 0;
+      int i = 0;
+      for (auto v : trk.segValidArray()) {
+        n |= (v ? (1 << i) : 0);
+        i++;
+      }
+      return n;
+    };
+
     auto get_nhits_fn = [](const EMTFTrack& trk) -> int {
       int n = std::accumulate(trk.segValidArray().begin(), trk.segValidArray().end(), 0);
       return n;
@@ -924,6 +937,7 @@ void NtupleMaker::process(const edm::Event& iEvent, const edm::EventSetup& iSetu
     vt_hitref9->push_back(trk.segRefArray().at(9));
     vt_hitrefA->push_back(trk.segRefArray().at(10));
     vt_hitrefB->push_back(trk.segRefArray().at(11));
+    vt_hitmode->push_back(get_hitmode_fn(trk));
     vt_nhits->push_back(get_nhits_fn(trk));
   }
   (*vt_size) = emtf_tracks.size();
