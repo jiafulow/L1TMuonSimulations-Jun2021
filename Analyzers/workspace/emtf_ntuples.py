@@ -98,7 +98,7 @@ def load_pgun_batch(k):
 
 def load_pgun_displaced_batch(k):
   dataset = SingleMuonDisplaced()
-  my_range = np.split(np.arange(len(dataset)), 100)[k]
+  my_range = np.split(np.arange(len(dataset)), 200)[k]
   infiles = dataset[my_range]
   return load_tree(infiles, load_hits=True, load_simhits=True, load_tracks=True,
                    load_particles=True)
@@ -127,6 +127,8 @@ class _BaseDataset(object):
       index_range = range(*index.indices(len(self)))
       return self[index_range]
     else:
+      if index >= len(self):
+        raise IndexError('list index out of range')
       return self.getitem(index)
 
   def __iter__(self):
@@ -167,7 +169,28 @@ class SingleMuon(_BaseDataset):
 
 
 class SingleMuonDisplaced(_BaseDataset):
-  pass
+  SIZE = 4000
+  PREFIX_0 = _EOS_PREFIX + 'SingleMuon_PosEnd_FlatD0_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/211027_032705/'
+  PREFIX_1 = _EOS_PREFIX + 'SingleMuon_NegEnd_FlatD0_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/211027_032749/'
+  PREFIX_2 = _EOS_PREFIX + 'SingleMuon_PosEnd_FlatVtx_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/211027_170204/'
+  PREFIX_3 = _EOS_PREFIX + 'SingleMuon_NegEnd_FlatVtx_2GeV_Phase2HLTTDRSummer20/ParticleGuns/CRAB3/211027_160312/'
+
+  def getitem(self, index):
+    if index < 2000:
+      if index % 2 == 0:
+        prefix = self.PREFIX_0
+      else:
+        prefix = self.PREFIX_1
+      jobid = index // 2
+      jobid = jobid + 1
+    else:
+      if index % 2 == 0:
+        prefix = self.PREFIX_2
+      else:
+        prefix = self.PREFIX_3
+      jobid = (index - 2000) // 2
+      jobid = jobid + 1
+    return self._filename(prefix, self.FNAME, jobid)
 
 
 # Note:
