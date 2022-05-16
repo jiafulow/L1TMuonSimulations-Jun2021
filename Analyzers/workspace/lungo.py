@@ -41,7 +41,11 @@ class DummyAnalysis(_BaseAnalysis):
             ievt, len(evt.particles), len(evt.simhits), len(evt.hits), len(evt.tracks)))
 
       # Particles
-      part = evt.particles[0]  # particle gun
+      try:
+        part = evt.particles[0]  # particle gun
+      except AttributeError:
+        continue  # no particle
+
       if verbosity >= 1:
         ipart = 0
         print('.. part {0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f}'.format(

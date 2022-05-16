@@ -213,7 +213,7 @@ class SignalAnalysis(_BaseAnalysis):
     tree = load_tree(task_queue, load_hits=True, load_simhits=True, load_tracks=True,
                      load_particles=True, use_multiprocessing=True)
 
-    if signal == 'prompt':
+    if signal == 'signal':
       unconstrained = 0
     else:
       unconstrained = 1
@@ -231,7 +231,10 @@ class SignalAnalysis(_BaseAnalysis):
     # Loop over events
     for ievt, evt in enumerate(tree):
       # Particles
-      part = evt.particles[0]  # particle gun
+      try:
+        part = evt.particles[0]  # particle gun
+      except AttributeError:
+        continue  # no particle
 
       # First, determine the best sector and best zone (using trigger primitives)
 
@@ -413,9 +416,9 @@ class SignalAnalysis(_BaseAnalysis):
     if num_workers > cpu_count():
       num_workers = cpu_count()
 
-    if signal == 'prompt':
+    if signal == 'signal':
       dataset = SingleMuon()
-    elif signal == 'displaced':
+    elif signal == 'signal_dxy':
       dataset = SingleMuonDisplaced()
     else:
       raise ValueError('Unexpected signal: {}'.format(signal))
@@ -436,7 +439,7 @@ class SignalAnalysis(_BaseAnalysis):
     result = cls.union_fn(num_workers, done_queue)
     return result
 
-  def run(self, signal='prompt'):
+  def run(self, signal):
     self.multiprocessing_fn(signal=signal)
     return
 
@@ -557,7 +560,7 @@ class BkgndAnalysis(_BaseAnalysis):
     result = cls.union_fn(num_workers, done_queue)
     return result
 
-  def run(self, bkgnd='minbias'):
+  def run(self, bkgnd):
     self.multiprocessing_fn(bkgnd=bkgnd)
     return
 
@@ -632,12 +635,10 @@ def app_decorator(fn):
 # App
 @app_decorator
 def app():
-  if analysis == 'signal':
-    SignalAnalysis().run(signal='prompt')
-  elif analysis == 'signal_dxy':
-    SignalAnalysis().run(signal='displaced')
+  if analysis == 'signal' or analysis == 'signal_dxy':
+    SignalAnalysis().run(signal=analysis)
   elif analysis == 'bkgnd':
-    BkgndAnalysis().run(bkgnd='minbias')
+    BkgndAnalysis().run(bkgnd=analysis)
   else:
     raise RuntimeError('Could not recognize analysis: {}'.format(analysis))
 
